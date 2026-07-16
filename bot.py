@@ -1,6 +1,5 @@
 import logging
 import os
-import threading
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
@@ -97,7 +96,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Убрали disable_web_page_preview — он не поддерживается для send_photo
     await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=BANNER_URL,
@@ -329,21 +327,27 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{EMOJI_TAGS['pin']} Используйте /start для главного меню."
         )
 
-# ---------- FLASK ДЛЯ UPTIME ROBOT ----------
+# ---------- FLASK ДЛЯ WEBHOOK И HEALTH CHECK ----------
 app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+async def webhook():
+    """Принимает обновления от Telegram."""
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    await application.process_update(update)
+    return 'ok', 200
 
 @app.route('/')
 @app.route('/health')
 def health():
     return "OK", 200
 
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-
-# ---------- ЗАПУСК БОТА ----------
-def run_bot():
+# ---------- ЗАПУСК ----------
+if __name__ == '__main__':
+    # 1. Создаём приложение
     application = Application.builder().token(TOKEN).build()
+    
+    # 2. Регистрируем обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("wrfas", wrfas))
@@ -353,14 +357,16 @@ def run_bot():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    logger.info("Бот запущен в режиме long polling")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # 3. Настраиваем Webhook
+    port = int(os.environ.get("PORT", 10000))
+    # Render сам подставляет внешний URL в переменную RENDER_EXTERNAL_HOSTNAME
+    external_url = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    if external_url:
+        webhook_url = f"https://{external_url}/webhook"
+        logger.info(f"Устанавливаем вебхук: {webhook_url}")
+        application.bot.set_webhook(url=webhook_url)
+    else:
+        logger.warning("RENDER_EXTERNAL_HOSTNAME не найдена, вебхук не установлен.")
 
-if __name__ == '__main__':
-    # Запускаем Flask в отдельном потоке (для Uptime Robot)
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
-
-    # Запускаем бота в основном потоке
-    run_bot()
+    # 4. Запускаем Flask (он будет слушать порт и принимать запросы)
+    app.run(host="0.0.0.0", port=port)
