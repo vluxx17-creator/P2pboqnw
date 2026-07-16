@@ -4,21 +4,27 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
-# ---------- ЛОГИ ----------
+# ============================================================
+# 1. НАСТРОЙКА ЛОГИРОВАНИЯ
+# ============================================================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# ---------- КОНФИГ ----------
+# ============================================================
+# 2. КОНФИГУРАЦИЯ БОТА
+# ============================================================
 TOKEN = "8578762350:AAFrd1SgZzm7IvELjcwrj6anShyzHeZlCws"
-ADMIN_IDS = [8400055743, 8297446667]
+ADMIN_IDS = [8400055743, 8297446667]          # только эти пользователи имеют доступ к админ-командам
 BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
 GUIDE_URL = "https://telegra.ph/Podrobnyj-gajd-po-ispolzovaniyu-GiftElfRobot-04-25"
 
-# ---------- ПРЕМИУМ-ЭМОДЗИ ----------
+# ============================================================
+# 3. ПРЕМИУМ-ЭМОДЗИ (HTML-теги для текста и символы для кнопок)
+# ============================================================
 EMOJI_TAGS = {
     "rocket": '<tg-emoji emoji-id="5195033767969839232">🚀</tg-emoji>',
     "shield": '<tg-emoji emoji-id="5197288647275071607">🛡</tg-emoji>',
@@ -40,24 +46,41 @@ EMOJI_TAGS = {
     "wallet": '<tg-emoji emoji-id="5445353829304387411">💳</tg-emoji>',
     "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>'
 }
+# Извлекаем обычные символы для использования в инлайн-кнопках
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
-# ---------- ХРАНИЛИЩА ----------
-balances = {}
-deals = {}
-user_deals = {}
-deal_counter = 0
+# ============================================================
+# 4. ХРАНИЛИЩА ДАННЫХ (в оперативной памяти)
+# ============================================================
+balances = {}          # user_id -> float (баланс пользователя)
+deals = {}             # deal_id -> dict (информация о сделке)
+user_deals = {}        # user_id -> list of deal_ids (сделки пользователя)
+deal_counter = 0       # счётчик для генерации уникальных ID сделок
 
+# ============================================================
+# 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================================
 def is_admin(user_id: int) -> bool:
+    """Проверяет, является ли пользователь администратором."""
     return user_id in ADMIN_IDS
 
 def get_balance(user_id: int) -> float:
+    """Возвращает баланс пользователя."""
     return balances.get(user_id, 0.0)
 
-def add_balance(user_id: int, amount: float):
+def add_balance(user_id: int, amount: float) -> None:
+    """Увеличивает баланс пользователя на указанную сумму."""
     balances[user_id] = get_balance(user_id) + amount
 
-def create_deal(buyer: int, seller: int, amount: float, description: str = ""):
+def create_deal(buyer: int, seller: int, amount: float, description: str = "") -> int:
+    """
+    Создаёт новую сделку.
+    :param buyer: ID покупателя
+    :param seller: ID продавца
+    :param amount: сумма сделки
+    :param description: описание сделки (например, 'Покупка NFT')
+    :return: ID созданной сделки
+    """
     global deal_counter
     deal_counter += 1
     deal_id = deal_counter
@@ -65,15 +88,23 @@ def create_deal(buyer: int, seller: int, amount: float, description: str = ""):
         "buyer": buyer,
         "seller": seller,
         "amount": amount,
-        "status": "active",
+        "status": "active",          # active или completed
         "description": description
     }
+    # Добавляем сделку в список сделок каждого участника
     user_deals.setdefault(buyer, []).append(deal_id)
     user_deals.setdefault(seller, []).append(deal_id)
     return deal_id
 
-# ---------- ГЛАВНОЕ МЕНЮ ----------
+# ============================================================
+# 6. ОБРАБОТЧИК КОМАНДЫ /start (ГЛАВНОЕ МЕНЮ)
+# ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Отправляет приветственное сообщение с баннером и инлайн-кнопками.
+    Всё в одном сообщении, как на скриншоте.
+    """
+    # Формируем текст с премиум-эмодзи и ссылкой на гайд
     caption = (
         f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
         f"<b>Покупайте и продавайте всё, что угодно – безопасно!</b>\n"
@@ -85,6 +116,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"<a href='{GUIDE_URL}'>Подробный гайд по использованию</a>\n\n"
         f"Выберите нужный раздел ниже:"
     )
+
+    # Создаём клавиатуру с кнопками (каждая с премиум-символом)
     keyboard = [
         [InlineKeyboardButton(f"{SYMBOLS['wallet']} Добавить/изменить кошелёк", callback_data='wallet')],
         [InlineKeyboardButton(f"{SYMBOLS['money']} Создать сделку", callback_data='create_deal')],
@@ -92,11 +125,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton(f"{SYMBOLS['globe']} Сменить язык", callback_data='lang')],
         [InlineKeyboardButton(f"{SYMBOLS['heart']} Поддержка", callback_data='support')],
     ]
+    # Если пользователь является админом – добавляем кнопку админ-панели
     if is_admin(update.effective_user.id):
         keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
+
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Ключевое исправление: убрали disable_web_page_preview
+    # Отправляем фото с подписью и кнопками (ВАЖНО: disable_web_page_preview НЕ используется для send_photo)
     await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=BANNER_URL,
@@ -105,8 +140,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# ---------- ОБРАБОТЧИКИ КНОПОК ----------
+# ============================================================
+# 7. ОБРАБОТЧИК ИНЛАЙН-КНОПОК
+# ============================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обрабатывает нажатия на все инлайн-кнопки главного меню.
+    """
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
@@ -118,12 +158,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == 'create_deal':
         text = (
             f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\n"
+            f"Используйте команды:\n"
             f"/buy &lt;сумма&gt; &lt;валюта&gt; – вы покупатель\n"
             f"/sell &lt;сумма&gt; &lt;валюта&gt; – вы продавец"
         )
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'ref':
-        text = f"{EMOJI_TAGS['link']} <b>Реферальная ссылка</b>\n\n<code>https://t.me/YourBotBot?start=ref_{user_id}</code>"
+        text = (
+            f"{EMOJI_TAGS['link']} <b>Реферальная ссылка</b>\n\n"
+            f"<code>https://t.me/YourBotBot?start=ref_{user_id}</code>"
+        )
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'lang':
         text = f"{EMOJI_TAGS['globe']} <b>Смена языка</b>\n\nДоступен русский."
@@ -146,113 +190,24 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.edit_message_text("Неизвестная команда.")
 
-# ---------- ОБЫЧНЫЕ КОМАНДЫ ----------
+# ============================================================
+# 8. ОБЫЧНЫЕ КОМАНДЫ: /help, /buy, /sell
+# ============================================================
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = f"{EMOJI_TAGS['pin']} <b>Команды:</b>\n/start\n/help\n/buy <сумма> <валюта>\n/sell <сумма> <валюта>"
+    """Выводит список доступных команд."""
+    text = (
+        f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n"
+        f"/start – главное меню\n"
+        f"/help – эта справка\n"
+        f"/buy &lt;сумма&gt; &lt;валюта&gt; – создать заявку на покупку\n"
+        f"/sell &lt;сумма&gt; &lt;валюта&gt; – создать заявку на продажу"
+    )
     await update.message.reply_text(text, parse_mode='HTML')
 
-# ---------- АДМИН-КОМАНДЫ ----------
-async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not is_admin(user_id):
-        await update.message.reply_text("⛔ Нет доступа.")
-        return
-    text = (
-        f"{EMOJI_TAGS['star']} <b>Админ-команды:</b>\n\n"
-        f"🔹 /wrfas – этот список\n"
-        f"🔹 /buyslnft <ID> – завершить сделку\n"
-        f"🔹 /vidach <user_id> <сумма> – пополнить баланс\n"
-        f"🔹 /sdelkibo <user_id> – накрутить сделки\n\n"
-        f"Владельцы: {', '.join(str(uid) for uid in ADMIN_IDS)}"
-    )
-    msg = await update.message.reply_text(text, parse_mode='HTML')
-    try:
-        await context.bot.pin_chat_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
-    except Exception as e:
-        logger.warning(f"Не удалось закрепить: {e}")
-
-async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not is_admin(user_id):
-        await update.message.reply_text("⛔ Нет доступа.")
-        return
-    args = context.args
-    if not args:
-        await update.message.reply_text("⚠️ Укажите ID сделки: /buyslnft <ID>")
-        return
-    try:
-        deal_id = int(args[0])
-    except ValueError:
-        await update.message.reply_text("⚠️ ID должен быть числом.")
-        return
-    deal = deals.get(deal_id)
-    if not deal:
-        await update.message.reply_text(f"❌ Сделка {deal_id} не найдена.")
-        return
-    if deal['status'] == 'completed':
-        await update.message.reply_text(f"ℹ️ Сделка {deal_id} уже завершена.")
-        return
-    seller_id = deal['seller']
-    amount = deal['amount']
-    add_balance(seller_id, amount)
-    deal['status'] = 'completed'
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['check']} Сделка {deal_id} завершена. Продавцу {seller_id} начислено {amount} USDT."
-    )
-
-async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not is_admin(user_id):
-        await update.message.reply_text("⛔ Нет доступа.")
-        return
-    args = context.args
-    if len(args) < 2:
-        await update.message.reply_text("⚠️ Использование: /vidach <user_id> <сумма>")
-        return
-    try:
-        target_id = int(args[0])
-        amount = float(args[1])
-    except ValueError:
-        await update.message.reply_text("⚠️ Неверный формат.")
-        return
-    if amount <= 0:
-        await update.message.reply_text("⚠️ Сумма > 0.")
-        return
-    add_balance(target_id, amount)
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['money']} Баланс {target_id} пополнен на {amount:.2f} USDT. Текущий баланс: {get_balance(target_id):.2f} USDT."
-    )
-
-async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not is_admin(user_id):
-        await update.message.reply_text("⛔ Нет доступа.")
-        return
-    args = context.args
-    if not args:
-        await update.message.reply_text("⚠️ Укажите ID пользователя: /sdelkibo <user_id>")
-        return
-    try:
-        target_id = int(args[0])
-    except ValueError:
-        await update.message.reply_text("⚠️ ID должен быть числом.")
-        return
-    descriptions = ["Покупка NFT", "Продажа NFT", "Обмен токенов", "Продажа NFT (фиктивная)"]
-    for i, desc in enumerate(descriptions):
-        if i == 3:
-            buyer = ADMIN_IDS[0]
-            seller = target_id
-        else:
-            buyer = target_id
-            seller = ADMIN_IDS[0]
-        amount = round(10 + (hash(desc + str(i)) % 100), 2)
-        create_deal(buyer, seller, amount, description=desc)
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['briefcase']} Для {target_id} создано 4 фиктивные сделки."
-    )
-
-# ---------- ОБРАБОТЧИК ТЕКСТА (/buy, /sell) ----------
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обрабатывает команды /buy и /sell, создавая сделки.
+    """
     text = update.message.text
     if text.startswith('/buy'):
         args = text.split()
@@ -266,10 +221,10 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         currency = args[2] if len(args) > 2 else "USDT"
         buyer = update.effective_user.id
-        seller = ADMIN_IDS[0]
+        seller = ADMIN_IDS[0]          # продавец – первый админ (арбитр)
         deal_id = create_deal(buyer, seller, amount, description=f"Покупка {amount} {currency}")
         await update.message.reply_text(
-            f"{EMOJI_TAGS['money2']} Заявка на покупку создана! ID: {deal_id}"
+            f"{EMOJI_TAGS['money2']} Заявка на покупку создана!\nID сделки: {deal_id}"
         )
     elif text.startswith('/sell'):
         args = text.split()
@@ -286,16 +241,137 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         seller = update.effective_user.id
         deal_id = create_deal(buyer, seller, amount, description=f"Продажа {amount} {currency}")
         await update.message.reply_text(
-            f"{EMOJI_TAGS['coin2']} Заявка на продажу создана! ID: {deal_id}"
+            f"{EMOJI_TAGS['coin2']} Заявка на продажу создана!\nID сделки: {deal_id}"
         )
     else:
-        await update.message.reply_text(f"{EMOJI_TAGS['pin']} Используйте /start.")
+        await update.message.reply_text(f"{EMOJI_TAGS['pin']} Используйте /start для главного меню.")
 
-# ---------- FLASK ДЛЯ WEBHOOK ----------
+# ============================================================
+# 9. АДМИН-КОМАНДЫ (только для ADMIN_IDS)
+# ============================================================
+async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /wrfas – показывает список админ-команд и закрепляет сообщение.
+    """
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    text = (
+        f"{EMOJI_TAGS['star']} <b>Список админ-команд:</b>\n\n"
+        f"🔹 <code>/wrfas</code> – показать этот список и закрепить сообщение.\n"
+        f"🔹 <code>/buyslnft &lt;ID_сделки&gt;</code> – завершить активную сделку. Продавцу начисляются средства.\n"
+        f"🔹 <code>/vidach &lt;user_id&gt; &lt;сумма&gt;</code> – пополнить баланс указанного пользователя.\n"
+        f"🔹 <code>/sdelkibo &lt;user_id&gt;</code> – создать несколько фиктивных сделок для демонстрации.\n\n"
+        f"<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
+    )
+    msg = await update.message.reply_text(text, parse_mode='HTML')
+    # Пытаемся закрепить сообщение (если бот админ в группе)
+    try:
+        await context.bot.pin_chat_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
+    except Exception as e:
+        logger.warning(f"Не удалось закрепить сообщение: {e}")
+
+async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /buyslnft <ID> – завершает сделку, переводит деньги продавцу.
+    """
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    args = context.args
+    if not args:
+        await update.message.reply_text("⚠️ Укажите ID сделки: /buyslnft <ID>")
+        return
+    try:
+        deal_id = int(args[0])
+    except ValueError:
+        await update.message.reply_text("⚠️ ID должен быть числом.")
+        return
+    deal = deals.get(deal_id)
+    if not deal:
+        await update.message.reply_text(f"❌ Сделка с ID {deal_id} не найдена.")
+        return
+    if deal['status'] == 'completed':
+        await update.message.reply_text(f"ℹ️ Сделка {deal_id} уже завершена.")
+        return
+    seller_id = deal['seller']
+    amount = deal['amount']
+    add_balance(seller_id, amount)
+    deal['status'] = 'completed'
+    await update.message.reply_text(
+        f"{EMOJI_TAGS['check']} Сделка {deal_id} завершена.\n"
+        f"Продавцу (ID: {seller_id}) начислено {amount} USDT."
+    )
+
+async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /vidach <user_id> <сумма> – пополняет баланс пользователя.
+    """
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    args = context.args
+    if len(args) < 2:
+        await update.message.reply_text("⚠️ Использование: /vidach <user_id> <сумма>")
+        return
+    try:
+        target_id = int(args[0])
+        amount = float(args[1])
+    except ValueError:
+        await update.message.reply_text("⚠️ Некорректный формат. user_id – число, сумма – число.")
+        return
+    if amount <= 0:
+        await update.message.reply_text("⚠️ Сумма должна быть положительной.")
+        return
+    add_balance(target_id, amount)
+    await update.message.reply_text(
+        f"{EMOJI_TAGS['money']} Баланс пользователя {target_id} пополнен на {amount:.2f} USDT.\n"
+        f"Текущий баланс: {get_balance(target_id):.2f} USDT."
+    )
+
+async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /sdelkibo <user_id> – создаёт 4 фиктивные сделки для пользователя.
+    Используется для тестирования и демонстрации.
+    """
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    args = context.args
+    if not args:
+        await update.message.reply_text("⚠️ Укажите ID пользователя: /sdelkibo <user_id>")
+        return
+    try:
+        target_id = int(args[0])
+    except ValueError:
+        await update.message.reply_text("⚠️ ID должен быть числом.")
+        return
+    descriptions = ["Покупка NFT", "Продажа NFT", "Обмен токенов", "Продажа NFT (фиктивная)"]
+    for i, desc in enumerate(descriptions):
+        if i == 3:  # последняя – где target_id выступает продавцом
+            buyer = ADMIN_IDS[0]
+            seller = target_id
+        else:
+            buyer = target_id
+            seller = ADMIN_IDS[0]
+        amount = round(10 + (hash(desc + str(i)) % 100), 2)
+        create_deal(buyer, seller, amount, description=desc)
+    await update.message.reply_text(
+        f"{EMOJI_TAGS['briefcase']} Для пользователя {target_id} создано 4 фиктивные сделки."
+    )
+
+# ============================================================
+# 10. FLASK-ПРИЛОЖЕНИЕ ДЛЯ WEBHOOK И HEALTH CHECK
+# ============================================================
 app = Flask(__name__)
 
 @app.route('/webhook', methods=['POST'])
 async def webhook():
+    """Принимает обновления от Telegram через вебхук."""
     update = Update.de_json(request.get_json(force=True), application.bot)
     await application.process_update(update)
     return 'ok', 200
@@ -303,11 +379,17 @@ async def webhook():
 @app.route('/')
 @app.route('/health')
 def health():
+    """Проверка работоспособности для Uptime Robot или Render."""
     return "OK", 200
 
-# ---------- ЗАПУСК ----------
+# ============================================================
+# 11. ЗАПУСК БОТА
+# ============================================================
 if __name__ == '__main__':
+    # Создаём экземпляр Application
     application = Application.builder().token(TOKEN).build()
+
+    # Регистрируем все обработчики команд и кнопок
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("wrfas", wrfas))
@@ -317,6 +399,7 @@ if __name__ == '__main__':
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
+    # Настраиваем порт и вебхук
     port = int(os.environ.get("PORT", 10000))
     external_url = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     if external_url:
@@ -324,6 +407,7 @@ if __name__ == '__main__':
         logger.info(f"Установка вебхука: {webhook_url}")
         application.bot.set_webhook(url=webhook_url)
     else:
-        logger.warning("RENDER_EXTERNAL_HOSTNAME не найдена, вебхук не установлен.")
+        logger.warning("Переменная RENDER_EXTERNAL_HOSTNAME не найдена. Вебхук не установлен.")
 
+    # Запускаем Flask-сервер (он будет слушать порт и принимать запросы)
     app.run(host="0.0.0.0", port=port)
