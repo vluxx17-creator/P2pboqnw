@@ -30,6 +30,7 @@ BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
 GUIDE_URL = "https://telegra.ph/Podrobnyj-gajd-po-ispolzovaniyu-GiftElfRobot-04-25"
 BOT_USERNAME = "GiftElfiliRobot"
+REFERRAL_PERCENT = 20  # 20% от комиссии
 
 # ============================================================
 # 3. ПРЕМИУМ-ЭМОДЗИ
@@ -53,16 +54,199 @@ EMOJI_TAGS = {
     "globe": '<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji>',
     "users": '<tg-emoji emoji-id="5958460691550572213">👥</tg-emoji>',
     "wallet": '<tg-emoji emoji-id="5445353829304387411">💳</tg-emoji>',
-    "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>'
+    "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>',
+    "phone": '<tg-emoji emoji-id="5444856076954520455">📞</tg-emoji>'  # для поддержки
 }
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ============================================================
-# 4. СОСТОЯНИЯ ДЛЯ ДИАЛОГОВ
+# 4. ЛОКАЛИЗАЦИЯ
 # ============================================================
-# Состояния для создания сделки
+LANGUAGES = {
+    "ru": {
+        "name": "Русский",
+        "welcome": (
+            f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
+            f"<b>Покупайте и продавайте всё, что угодно – безопасно!</b>\n"
+            f"От Telegram-подарков и NFT до токенов и фиата – сделки проходят легко и без риска.\n\n"
+            f"• Удобное управление кошельками\n"
+            f"• Реферальная система\n\n"
+            f"<b>Как пользоваться?</b>\n"
+            f"Ознакомьтесь с инструкцией —\n"
+            f"<a href='{GUIDE_URL}'>Подробный гайд по использованию</a>\n\n"
+            f"Выберите нужный раздел ниже:"
+        ),
+        "main_menu": "Главное меню",
+        "wallet_menu": (
+            f"{EMOJI_TAGS['wallet']} <b>Ваш текущий кошелек:</b>\n"
+            "Выбрана оплата в <b>{method}</b>\n\n"
+            "Вы можете изменить способ оплаты ниже:"
+        ),
+        "wallet_ton_add": f"{EMOJI_TAGS['pen']} <b>Добавление TON-кошелька</b>\n\nПожалуйста, введите ваш TON адрес",
+        "wallet_sbp_add": (
+            f"{EMOJI_TAGS['pen']} <b>Добавление СБП</b>\n\n"
+            f"Пожалуйста, введите номер телефона в формате:\n<code>+7(ХХХ)ХХХ-ХХ-ХХ</code>"
+        ),
+        "wallet_sbp_bank": f"{EMOJI_TAGS['pen']} Пожалуйста, уточните, какой у вас банк!",
+        "wallet_card_add": (
+            f"{EMOJI_TAGS['pen']} <b>Добавление банковской карты</b>\n\n"
+            f"Пожалуйста, введите номер банковской карты в формате:\n<code>XXXX XXXX XXXX XXXX</code>"
+        ),
+        "wallet_card_bank": f"{EMOJI_TAGS['pen']} Пожалуйста, уточните, какой у вас банк!",
+        "wallet_stars_updated": f"{EMOJI_TAGS['check']} <b>Настройки обновлены:</b>\nвалюта сделок — STARS",
+        "wallet_ton_success": f"{EMOJI_TAGS['check']} TON-кошелек успешно добавлен!",
+        "wallet_sbp_success": f"{EMOJI_TAGS['check']} Кошелек успешно добавлен/изменен!",
+        "wallet_card_success": f"{EMOJI_TAGS['check']} Кошелек успешно добавлен/изменен!",
+        "create_deal_title": f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\nВведите сумму STARS в формате:\n<code>2000</code>",
+        "create_deal_desc": f"{EMOJI_TAGS['pen']} <b>Укажите, что вы предлагаете в этой сделке:</b>\n\n<i>Пример: 10 Кепок и Пене...</i>",
+        "create_deal_success": (
+            f"{EMOJI_TAGS['check']} <b>Сделка успешно создана!</b>\n\n"
+            "Сумма: <b>{amount} STARS</b>\n\n"
+            "<b>Описание:</b>\n{description}\n\n"
+            "Ссылка для покупателя:\n<code>{link}</code>\n\n"
+            "<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttg</i>"
+        ),
+        "deal_info": (
+            f"{EMOJI_TAGS['money']} <b>Информация о сделке</b>\n\n"
+            "Сумма: <b>{amount} STARS</b>\n"
+            "Описание: {description}\n\n"
+            "Для подтверждения сделки нажмите кнопку ниже."
+        ),
+        "deal_confirmed": "✅ Сделка подтверждена и завершена!",
+        "deal_canceled": "❌ Сделка отменена.",
+        "deal_not_found": "❌ Сделка не найдена или уже неактивна.",
+        "ref_title": f"{EMOJI_TAGS['link']} <b>Ваша реферальная ссылка:</b>\n<code>{link}</code>\n\nКоличество рефералов: {refs}\nЗаработано с рефералов: {earned} RUB\nВы получаете {percent}% от комиссии бота с рефералов.",
+        "lang_title": f"{EMOJI_TAGS['globe']} <b>Choose your language:</b>\n\nВыберите язык:",
+        "lang_changed": "🌐 Язык изменён на {lang}",
+        "support_title": f"{EMOJI_TAGS['phone']} <b>Техническая поддержка</b>\n\nДля связи с нами заполните форму:\n<a href='{SUPPORT_URL}'>Нажмите здесь</a>",
+        "back_to_menu": "↩️ Вернуться в меню",
+        "btn_wallet": f"{SYMBOLS['wallet']} Добавить/изменить кошелёк",
+        "btn_create_deal": f"{SYMBOLS['money']} Создать сделку",
+        "btn_ref": f"{SYMBOLS['link']} Реферальная ссылка",
+        "btn_lang": f"{SYMBOLS['globe']} Сменить язык",
+        "btn_support": f"{SYMBOLS['phone']} Поддержка",
+        "btn_admin": f"{SYMBOLS['star']} Админ-панель",
+        "btn_ton": "➕ Добавить TON-кошелек",
+        "btn_sbp": "➕ Добавить СБП",
+        "btn_card_rf": "➕ Добавить банковскую карту (РФ)",
+        "btn_card_ua": "➕ Добавить банковскую карту (UA)",
+        "btn_stars": "⭐ Оплата в STARS",
+        "btn_confirm": "✅ Подтвердить сделку",
+        "btn_cancel": "❌ Отменить",
+        "btn_cancel_deal": "❌ Отменить сделку",
+        "btn_back": "↩️ Вернуться в меню",
+        "admin_panel": (
+            f"{EMOJI_TAGS['star']} <b>Админ-панель</b>\n\n"
+            f"/wrfas – список команд\n"
+            f"/buyslnft &lt;ID&gt; – завершить сделку\n"
+            f"/vidach &lt;user_id&gt; &lt;сумма&gt; – пополнить баланс\n"
+            f"/sdelkibo &lt;user_id&gt; – накрутить сделки"
+        ),
+        "help_text": f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n/start – главное меню\n/help – эта справка",
+        "invalid_amount": "⚠️ Пожалуйста, введите корректное положительное число.",
+        "invalid_description": "⚠️ Описание не может быть пустым. Попробуйте ещё раз.",
+        "invalid_ton": "⚠️ Похоже, адрес слишком короткий. Попробуйте ещё раз.",
+        "invalid_phone": "⚠️ Неверный формат. Попробуйте ещё раз.",
+        "invalid_card": "⚠️ Неверный формат карты. Должно быть 16 цифр.",
+        "invalid_bank": "⚠️ Введите название банка.",
+        "deal_canceled_by_user": "❌ Создание сделки отменено.",
+        "something_wrong": "❌ Что-то пошло не так. Начните заново через /start",
+    },
+    "en": {
+        "name": "English",
+        "welcome": (
+            f"{EMOJI_TAGS['rocket']} <b>Welcome to ELF OTC – trusted P2P escrow</b>\n\n"
+            f"<b>Buy and sell anything – safely!</b>\n"
+            f"From Telegram gifts and NFT to tokens and fiat – deals are easy and risk-free.\n\n"
+            f"• Convenient wallet management\n"
+            f"• Referral system\n\n"
+            f"<b>How to use?</b>\n"
+            f"Check out the guide —\n"
+            f"<a href='{GUIDE_URL}'>Detailed guide</a>\n\n"
+            f"Select a section below:"
+        ),
+        "main_menu": "Main menu",
+        "wallet_menu": (
+            f"{EMOJI_TAGS['wallet']} <b>Your current wallet:</b>\n"
+            "Selected payment method: <b>{method}</b>\n\n"
+            "You can change payment method below:"
+        ),
+        "wallet_ton_add": f"{EMOJI_TAGS['pen']} <b>Adding TON wallet</b>\n\nPlease enter your TON address",
+        "wallet_sbp_add": (
+            f"{EMOJI_TAGS['pen']} <b>Adding SBP</b>\n\n"
+            f"Please enter your phone number in format:\n<code>+7(XXX)XXX-XX-XX</code>"
+        ),
+        "wallet_sbp_bank": f"{EMOJI_TAGS['pen']} Please specify your bank!",
+        "wallet_card_add": (
+            f"{EMOJI_TAGS['pen']} <b>Adding bank card</b>\n\n"
+            f"Please enter your card number in format:\n<code>XXXX XXXX XXXX XXXX</code>"
+        ),
+        "wallet_card_bank": f"{EMOJI_TAGS['pen']} Please specify your bank!",
+        "wallet_stars_updated": f"{EMOJI_TAGS['check']} <b>Settings updated:</b>\ncurrency for deals — STARS",
+        "wallet_ton_success": f"{EMOJI_TAGS['check']} TON wallet successfully added!",
+        "wallet_sbp_success": f"{EMOJI_TAGS['check']} Wallet successfully added/changed!",
+        "wallet_card_success": f"{EMOJI_TAGS['check']} Wallet successfully added/changed!",
+        "create_deal_title": f"{EMOJI_TAGS['money']} <b>Create deal</b>\n\nEnter amount in STARS:\n<code>2000</code>",
+        "create_deal_desc": f"{EMOJI_TAGS['pen']} <b>What are you offering in this deal?</b>\n\n<i>Example: 10 Caps and Pen...</i>",
+        "create_deal_success": (
+            f"{EMOJI_TAGS['check']} <b>Deal successfully created!</b>\n\n"
+            "Amount: <b>{amount} STARS</b>\n\n"
+            "<b>Description:</b>\n{description}\n\n"
+            "Link for buyer:\n<code>{link}</code>\n\n"
+            "<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttg</i>"
+        ),
+        "deal_info": (
+            f"{EMOJI_TAGS['money']} <b>Deal info</b>\n\n"
+            "Amount: <b>{amount} STARS</b>\n"
+            "Description: {description}\n\n"
+            "Press button below to confirm the deal."
+        ),
+        "deal_confirmed": "✅ Deal confirmed and completed!",
+        "deal_canceled": "❌ Deal canceled.",
+        "deal_not_found": "❌ Deal not found or already inactive.",
+        "ref_title": f"{EMOJI_TAGS['link']} <b>Your referral link:</b>\n<code>{link}</code>\n\nReferrals: {refs}\nEarned from referrals: {earned} RUB\nYou get {percent}% of bot's commission from referrals.",
+        "lang_title": f"{EMOJI_TAGS['globe']} <b>Choose your language:</b>\n\nВыберите язык:",
+        "lang_changed": "🌐 Language changed to {lang}",
+        "support_title": f"{EMOJI_TAGS['phone']} <b>Support</b>\n\nTo contact us, fill out the form:\n<a href='{SUPPORT_URL}'>Click here</a>",
+        "back_to_menu": "↩️ Back to menu",
+        "btn_wallet": f"{SYMBOLS['wallet']} Add/change wallet",
+        "btn_create_deal": f"{SYMBOLS['money']} Create deal",
+        "btn_ref": f"{SYMBOLS['link']} Referral link",
+        "btn_lang": f"{SYMBOLS['globe']} Change language",
+        "btn_support": f"{SYMBOLS['phone']} Support",
+        "btn_admin": f"{SYMBOLS['star']} Admin panel",
+        "btn_ton": "➕ Add TON wallet",
+        "btn_sbp": "➕ Add SBP",
+        "btn_card_rf": "➕ Add bank card (RU)",
+        "btn_card_ua": "➕ Add bank card (UA)",
+        "btn_stars": "⭐ Pay in STARS",
+        "btn_confirm": "✅ Confirm deal",
+        "btn_cancel": "❌ Cancel",
+        "btn_cancel_deal": "❌ Cancel deal",
+        "btn_back": "↩️ Back to menu",
+        "admin_panel": (
+            f"{EMOJI_TAGS['star']} <b>Admin panel</b>\n\n"
+            f"/wrfas – list of commands\n"
+            f"/buyslnft &lt;ID&gt; – complete deal\n"
+            f"/vidach &lt;user_id&gt; &lt;amount&gt; – add balance\n"
+            f"/sdelkibo &lt;user_id&gt; – fake deals"
+        ),
+        "help_text": f"{EMOJI_TAGS['pin']} <b>Available commands:</b>\n/start – main menu\n/help – this help",
+        "invalid_amount": "⚠️ Please enter a valid positive number.",
+        "invalid_description": "⚠️ Description cannot be empty. Try again.",
+        "invalid_ton": "⚠️ Address seems too short. Try again.",
+        "invalid_phone": "⚠️ Invalid format. Try again.",
+        "invalid_card": "⚠️ Invalid card format. Must be 16 digits.",
+        "invalid_bank": "⚠️ Please enter your bank name.",
+        "deal_canceled_by_user": "❌ Deal creation canceled.",
+        "something_wrong": "❌ Something went wrong. Start over with /start",
+    }
+}
+
+# ============================================================
+# 5. СОСТОЯНИЯ ДЛЯ ДИАЛОГОВ
+# ============================================================
 AMOUNT, DESCRIPTION = range(2)
-# Состояния для управления кошельками
 (
     WALLET_MAIN,
     WALLET_TON_INPUT,
@@ -75,31 +259,42 @@ AMOUNT, DESCRIPTION = range(2)
 ) = range(2, 10)
 
 # ============================================================
-# 5. ХРАНИЛИЩА
+# 6. ХРАНИЛИЩА
 # ============================================================
 balances = {}
 deals = {}
 user_deals = {}
 deal_counter = 0
 temp_deal_data = {}
+wallets = {}
+user_lang = {}        # user_id -> 'ru' or 'en'
+referrals = {}        # user_id -> list of referred user_ids
+referral_earnings = {} # user_id -> total earned from referrals
 
-# Хранилище кошельков пользователей
-wallets = {}  # user_id -> {ton, sbp, card_rf, card_ua, payment_method}
+def get_lang(user_id: int) -> str:
+    return user_lang.get(user_id, 'ru')
+
+def get_text(key: str, user_id: int, **kwargs) -> str:
+    lang = get_lang(user_id)
+    text = LANGUAGES.get(lang, LANGUAGES['ru']).get(key, key)
+    return text.format(**kwargs) if kwargs else text
 
 def get_wallet(user_id: int) -> dict:
-    """Возвращает данные кошелька пользователя, создаёт пустой, если нет."""
     if user_id not in wallets:
         wallets[user_id] = {
             "ton": None,
-            "sbp": None,       # номер телефона + банк
-            "card_rf": None,   # номер карты + банк
-            "card_ua": None,   # номер карты + банк
-            "payment_method": "stars"  # stars, ton, sbp, card_rf, card_ua
+            "sbp": None,
+            "card_rf": None,
+            "card_ua": None,
+            "payment_method": "stars"
         }
     return wallets[user_id]
 
+def generate_ref_code() -> str:
+    return uuid.uuid4().hex[:12]
+
 # ============================================================
-# 6. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# 7. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 # ============================================================
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
@@ -135,9 +330,10 @@ def get_deal_by_code(code: str):
     return None
 
 # ============================================================
-# 7. ГЛАВНОЕ МЕНЮ
+# 8. ГЛАВНОЕ МЕНЮ (С ЛОКАЛИЗАЦИЕЙ)
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     if context.args:
         code = context.args[0]
         if code.startswith("deal_"):
@@ -146,32 +342,40 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await show_deal_to_buyer(update, context, deal)
                 return
             else:
-                await update.message.reply_text("❌ Сделка не найдена или уже завершена.")
+                await update.message.reply_text(get_text("deal_not_found", user_id))
                 return
+        elif code.startswith("ref_"):
+            # Реферальная ссылка: добавляем реферала
+            referrer_id = int(code.split("_")[1])
+            if referrer_id != user_id:
+                if user_id not in referrals.get(referrer_id, []):
+                    referrals.setdefault(referrer_id, []).append(user_id)
+                    # Начисляем бонус (фиктивно 0.5 RUB)
+                    referral_earnings[referrer_id] = referral_earnings.get(referrer_id, 0) + 0.5
+                await update.message.reply_text("✅ Вы успешно зарегистрированы по реферальной ссылке!")
+            else:
+                await update.message.reply_text("ℹ️ Вы не можете пригласить самого себя.")
+            # После реферальной ссылки показываем главное меню
+            await show_main_menu(update, context)
+            return
 
-    caption = (
-        f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
-        f"<b>Покупайте и продавайте всё, что угодно – безопасно!</b>\n"
-        f"От Telegram-подарков и NFT до токенов и фиата – сделки проходят легко и без риска.\n\n"
-        f"• Удобное управление кошельками\n"
-        f"• Реферальная система\n\n"
-        f"<b>Как пользоваться?</b>\n"
-        f"Ознакомьтесь с инструкцией —\n"
-        f"<a href='{GUIDE_URL}'>Подробный гайд по использованию</a>\n\n"
-        f"Выберите нужный раздел ниже:"
-    )
+    await show_main_menu(update, context)
+
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    lang = get_lang(user_id)
+    caption = get_text("welcome", user_id)
     keyboard = [
-        [InlineKeyboardButton(f"{SYMBOLS['wallet']} Добавить/изменить кошелёк", callback_data='wallet')],
-        [InlineKeyboardButton(f"{SYMBOLS['money']} Создать сделку", callback_data='create_deal')],
-        [InlineKeyboardButton(f"{SYMBOLS['link']} Реферальная ссылка", callback_data='ref')],
-        [InlineKeyboardButton(f"{SYMBOLS['globe']} Сменить язык", callback_data='lang')],
-        [InlineKeyboardButton(f"{SYMBOLS['heart']} Поддержка", callback_data='support')],
+        [InlineKeyboardButton(get_text("btn_wallet", user_id), callback_data='wallet')],
+        [InlineKeyboardButton(get_text("btn_create_deal", user_id), callback_data='create_deal')],
+        [InlineKeyboardButton(get_text("btn_ref", user_id), callback_data='ref')],
+        [InlineKeyboardButton(get_text("btn_lang", user_id), callback_data='lang')],
+        [InlineKeyboardButton(get_text("btn_support", user_id), callback_data='support')],
     ]
-    if is_admin(update.effective_user.id):
-        keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
+    if is_admin(user_id):
+        keyboard.append([InlineKeyboardButton(get_text("btn_admin", user_id), callback_data='admin_panel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Если сообщение пришло из колбэка (возврат в меню) – удаляем старое и отправляем новое
     if update.callback_query:
         await update.callback_query.message.delete()
         await context.bot.send_photo(
@@ -190,78 +394,71 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup
         )
 
+# ============================================================
+# 9. ПОКАЗ СДЕЛКИ ПОКУПАТЕЛЮ
+# ============================================================
 async def show_deal_to_buyer(update: Update, context: ContextTypes.DEFAULT_TYPE, deal: dict):
-    text = (
-        f"{EMOJI_TAGS['money']} <b>Информация о сделке</b>\n\n"
-        f"Сумма: <b>{deal['amount']} STARS</b>\n"
-        f"Описание: {deal['description']}\n\n"
-        f"Для подтверждения сделки нажмите кнопку ниже."
-    )
+    user_id = update.effective_user.id
+    text = get_text("deal_info", user_id, amount=deal['amount'], description=deal['description'])
     keyboard = [
-        [InlineKeyboardButton("✅ Подтвердить сделку", callback_data=f"confirm_deal_{deal['id']}")],
-        [InlineKeyboardButton("❌ Отменить", callback_data=f"cancel_deal_{deal['id']}")]
+        [InlineKeyboardButton(get_text("btn_confirm", user_id), callback_data=f"confirm_deal_{deal['id']}")],
+        [InlineKeyboardButton(get_text("btn_cancel", user_id), callback_data=f"cancel_deal_{deal['id']}")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
 
 # ============================================================
-# 8. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ
+# 10. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ (С ЛОКАЛИЗАЦИЕЙ)
 # ============================================================
 async def create_deal_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\nВведите сумму STARS в формате:\n<code>2000</code>",
+        text=get_text("create_deal_title", user_id),
         parse_mode='HTML'
     )
     return AMOUNT
 
 async def create_deal_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     text = update.message.text.strip()
     try:
         amount = float(text)
         if amount <= 0:
             raise ValueError
     except ValueError:
-        await update.message.reply_text("⚠️ Пожалуйста, введите корректное положительное число.")
+        await update.message.reply_text(get_text("invalid_amount", user_id))
         return AMOUNT
 
-    user_id = update.effective_user.id
     temp_deal_data[user_id] = {"amount": amount}
-
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['pen']} <b>Укажите, что вы предлагаете в этой сделке:</b>\n\n<i>Пример: 10 Кепок и Пене...</i>",
-        parse_mode='HTML'
-    )
+    await update.message.reply_text(get_text("create_deal_desc", user_id), parse_mode='HTML')
     return DESCRIPTION
 
 async def create_deal_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     description = update.message.text.strip()
     if not description:
-        await update.message.reply_text("⚠️ Описание не может быть пустым. Попробуйте ещё раз.")
+        await update.message.reply_text(get_text("invalid_description", user_id))
         return DESCRIPTION
 
-    user_id = update.effective_user.id
     data = temp_deal_data.get(user_id)
     if not data:
-        await update.message.reply_text("❌ Что-то пошло не так. Начните заново через /start")
+        await update.message.reply_text(get_text("something_wrong", user_id))
         return ConversationHandler.END
 
     amount = data["amount"]
     deal = create_deal(user_id, amount, description)
 
-    text = (
-        f"{EMOJI_TAGS['check']} <b>Сделка успешно создана!</b>\n\n"
-        f"Сумма: <b>{int(amount)} STARS</b>\n\n"
-        f"<b>Описание:</b>\n{description}\n\n"
-        f"Ссылка для покупателя:\n<code>{deal['buyer_link']}</code>\n\n"
-        f"<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttq</i>"
-    )
+    text = get_text("create_deal_success", user_id,
+                    amount=int(amount),
+                    description=description,
+                    link=deal['buyer_link'])
     keyboard = [
-        [InlineKeyboardButton("❌ Отменить сделку", callback_data=f"cancel_deal_{deal['id']}")],
-        [InlineKeyboardButton("↩️ Вернуться в меню", callback_data="back_to_menu")]
+        [InlineKeyboardButton(get_text("btn_cancel_deal", user_id), callback_data=f"cancel_deal_{deal['id']}")],
+        [InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
@@ -275,46 +472,39 @@ async def cancel_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id in temp_deal_data:
         del temp_deal_data[user_id]
-    await update.message.reply_text("❌ Создание сделки отменено.")
-    await start(update, context)
+    await update.message.reply_text(get_text("deal_canceled_by_user", user_id))
+    await show_main_menu(update, context)
     return ConversationHandler.END
 
 # ============================================================
-# 9. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ
+# 11. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ (С ЛОКАЛИЗАЦИЕЙ)
 # ============================================================
 async def wallet_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показывает меню управления кошельками (первое фото)."""
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
     wallet = get_wallet(user_id)
 
-    # Формируем текущий статус
     method_names = {
         "stars": "STARS",
-        "ton": "TON-кошелек",
+        "ton": "TON",
         "sbp": "СБП",
-        "card_rf": "Банковская карта (РФ)",
-        "card_ua": "Банковская карта (UA)"
+        "card_rf": "Card (RF)",
+        "card_ua": "Card (UA)"
     }
-    current_method = method_names.get(wallet["payment_method"], "STARS")
+    current = method_names.get(wallet["payment_method"], "STARS")
+    text = get_text("wallet_menu", user_id, method=current)
 
-    text = (
-        f"{EMOJI_TAGS['wallet']} <b>Ваш текущий кошелек:</b>\n"
-        f"Выбрана оплата в <b>{current_method}</b>\n\n"
-        f"Вы можете изменить способ оплаты ниже:"
-    )
     keyboard = [
-        [InlineKeyboardButton("➕ Добавить TON-кошелек", callback_data="wallet_ton")],
-        [InlineKeyboardButton("➕ Добавить СБП", callback_data="wallet_sbp")],
-        [InlineKeyboardButton("➕ Добавить банковскую карту (РФ)", callback_data="wallet_card_rf")],
-        [InlineKeyboardButton("➕ Добавить банковскую карту (UA)", callback_data="wallet_card_ua")],
-        [InlineKeyboardButton("⭐ Оплата в STARS", callback_data="wallet_stars")],
-        [InlineKeyboardButton("↩️ Вернуться в меню", callback_data="back_to_menu")]
+        [InlineKeyboardButton(get_text("btn_ton", user_id), callback_data="wallet_ton")],
+        [InlineKeyboardButton(get_text("btn_sbp", user_id), callback_data="wallet_sbp")],
+        [InlineKeyboardButton(get_text("btn_card_rf", user_id), callback_data="wallet_card_rf")],
+        [InlineKeyboardButton(get_text("btn_card_ua", user_id), callback_data="wallet_card_ua")],
+        [InlineKeyboardButton(get_text("btn_stars", user_id), callback_data="wallet_stars")],
+        [InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Удаляем предыдущее сообщение и отправляем новое
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -324,183 +514,164 @@ async def wallet_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return WALLET_MAIN
 
-# ---------- Обработчики для каждого типа ----------
+# Обработчики для каждого типа (с локализацией)
 async def wallet_ton_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=(
-            f"{EMOJI_TAGS['pen']} <b>Добавление TON-кошелька</b>\n\n"
-            f"Пожалуйста, введите ваш TON адрес"
-        ),
+        text=get_text("wallet_ton_add", user_id),
         parse_mode='HTML'
     )
     return WALLET_TON_INPUT
 
 async def wallet_ton_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     ton_address = update.message.text.strip()
-    if len(ton_address) < 10:  # простая проверка
-        await update.message.reply_text("⚠️ Похоже, адрес слишком короткий. Попробуйте ещё раз.")
+    if len(ton_address) < 10:
+        await update.message.reply_text(get_text("invalid_ton", user_id))
         return WALLET_TON_INPUT
 
-    user_id = update.effective_user.id
     wallet = get_wallet(user_id)
     wallet["ton"] = ton_address
     wallet["payment_method"] = "ton"
 
     await update.message.reply_text(
-        f"{EMOJI_TAGS['check']} TON-кошелек успешно добавлен!\n\n"
-        f"<b>Адрес:</b>\n<code>{ton_address}</code>"
+        f"{get_text('wallet_ton_success', user_id)}\n\n<b>Address:</b>\n<code>{ton_address}</code>",
+        parse_mode='HTML'
     )
-    # Возвращаем в меню кошельков
     return await wallet_menu(update, context)
 
-# ---------- СБП ----------
 async def wallet_sbp_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=(
-            f"{EMOJI_TAGS['pen']} <b>Добавление СБП</b>\n\n"
-            f"Пожалуйста, введите номер телефона в формате:\n"
-            f"<code>+7(ХХХ)ХХХ-ХХ-ХХ</code>"
-        ),
+        text=get_text("wallet_sbp_add", user_id),
         parse_mode='HTML'
     )
     return WALLET_SBP_PHONE
 
 async def wallet_sbp_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     phone = update.message.text.strip()
-    # Простая проверка (можно улучшить)
     if not phone.startswith('+') or len(phone) < 10:
-        await update.message.reply_text("⚠️ Неверный формат. Попробуйте ещё раз.")
+        await update.message.reply_text(get_text("invalid_phone", user_id))
         return WALLET_SBP_PHONE
 
     context.user_data['sbp_phone'] = phone
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['pen']} Пожалуйста, уточните, какой у вас банк!"
-    )
+    await update.message.reply_text(get_text("wallet_sbp_bank", user_id), parse_mode='HTML')
     return WALLET_SBP_BANK
 
 async def wallet_sbp_bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     bank = update.message.text.strip()
     if not bank:
-        await update.message.reply_text("⚠️ Введите название банка.")
+        await update.message.reply_text(get_text("invalid_bank", user_id))
         return WALLET_SBP_BANK
 
-    user_id = update.effective_user.id
     wallet = get_wallet(user_id)
     wallet["sbp"] = {"phone": context.user_data.get('sbp_phone'), "bank": bank}
     wallet["payment_method"] = "sbp"
 
     await update.message.reply_text(
-        f"{EMOJI_TAGS['check']} Кошелек успешно добавлен/изменен!\n\n"
-        f"<b>СБП:</b>\nТелефон: {context.user_data['sbp_phone']}\nБанк: {bank}"
+        f"{get_text('wallet_sbp_success', user_id)}\n\n<b>SBP:</b>\nPhone: {context.user_data['sbp_phone']}\nBank: {bank}",
+        parse_mode='HTML'
     )
-    # Очищаем временные данные
     if 'sbp_phone' in context.user_data:
         del context.user_data['sbp_phone']
     return await wallet_menu(update, context)
 
-# ---------- Карта РФ ----------
+# Аналогично для карт РФ и UA (код аналогичный, сокращаем для краткости)
 async def wallet_card_rf_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=(
-            f"{EMOJI_TAGS['pen']} <b>Добавление банковской карты</b>\n\n"
-            f"Пожалуйста, введите номер банковской карты в формате:\n"
-            f"<code>XXXX XXXX XXXX XXXX</code>"
-        ),
+        text=get_text("wallet_card_add", user_id),
         parse_mode='HTML'
     )
     return WALLET_CARD_RF_INPUT
 
 async def wallet_card_rf_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     card = update.message.text.strip().replace(' ', '')
     if len(card) != 16 or not card.isdigit():
-        await update.message.reply_text("⚠️ Неверный формат карты. Должно быть 16 цифр.")
+        await update.message.reply_text(get_text("invalid_card", user_id))
         return WALLET_CARD_RF_INPUT
 
     context.user_data['card_rf'] = card
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['pen']} Пожалуйста, уточните, какой у вас банк!"
-    )
+    await update.message.reply_text(get_text("wallet_card_bank", user_id), parse_mode='HTML')
     return WALLET_CARD_RF_BANK
 
 async def wallet_card_rf_bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     bank = update.message.text.strip()
     if not bank:
-        await update.message.reply_text("⚠️ Введите название банка.")
+        await update.message.reply_text(get_text("invalid_bank", user_id))
         return WALLET_CARD_RF_BANK
 
-    user_id = update.effective_user.id
     wallet = get_wallet(user_id)
     wallet["card_rf"] = {"card": context.user_data['card_rf'], "bank": bank}
     wallet["payment_method"] = "card_rf"
 
     await update.message.reply_text(
-        f"{EMOJI_TAGS['check']} Кошелек успешно добавлен/изменен!\n\n"
-        f"<b>Карта РФ:</b>\nНомер: {context.user_data['card_rf']}\nБанк: {bank}"
+        f"{get_text('wallet_card_success', user_id)}\n\n<b>Card (RF):</b>\nNumber: {context.user_data['card_rf']}\nBank: {bank}",
+        parse_mode='HTML'
     )
     if 'card_rf' in context.user_data:
         del context.user_data['card_rf']
     return await wallet_menu(update, context)
 
-# ---------- Карта UA ----------
+# Карта UA
 async def wallet_card_ua_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=(
-            f"{EMOJI_TAGS['pen']} <b>Добавление банковской карты</b>\n\n"
-            f"Пожалуйста, введите номер банковской карты в формате:\n"
-            f"<code>XXXX XXXX XXXX XXXX</code>"
-        ),
+        text=get_text("wallet_card_add", user_id),
         parse_mode='HTML'
     )
     return WALLET_CARD_UA_INPUT
 
 async def wallet_card_ua_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     card = update.message.text.strip().replace(' ', '')
     if len(card) != 16 or not card.isdigit():
-        await update.message.reply_text("⚠️ Неверный формат карты. Должно быть 16 цифр.")
+        await update.message.reply_text(get_text("invalid_card", user_id))
         return WALLET_CARD_UA_INPUT
 
     context.user_data['card_ua'] = card
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['pen']} Пожалуйста, уточните, какой у вас банк!"
-    )
+    await update.message.reply_text(get_text("wallet_card_bank", user_id), parse_mode='HTML')
     return WALLET_CARD_UA_BANK
 
 async def wallet_card_ua_bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
     bank = update.message.text.strip()
     if not bank:
-        await update.message.reply_text("⚠️ Введите название банка.")
+        await update.message.reply_text(get_text("invalid_bank", user_id))
         return WALLET_CARD_UA_BANK
 
-    user_id = update.effective_user.id
     wallet = get_wallet(user_id)
     wallet["card_ua"] = {"card": context.user_data['card_ua'], "bank": bank}
     wallet["payment_method"] = "card_ua"
 
     await update.message.reply_text(
-        f"{EMOJI_TAGS['check']} Кошелек успешно добавлен/изменен!\n\n"
-        f"<b>Карта UA:</b>\nНомер: {context.user_data['card_ua']}\nБанк: {bank}"
+        f"{get_text('wallet_card_success', user_id)}\n\n<b>Card (UA):</b>\nNumber: {context.user_data['card_ua']}\nBank: {bank}",
+        parse_mode='HTML'
     )
     if 'card_ua' in context.user_data:
         del context.user_data['card_ua']
     return await wallet_menu(update, context)
 
-# ---------- Оплата в STARS ----------
 async def wallet_stars(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -511,17 +682,100 @@ async def wallet_stars(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=(
-            f"{EMOJI_TAGS['check']} <b>Настройки обновлены:</b>\n"
-            f"валюта сделок — STARS"
-        ),
+        text=get_text("wallet_stars_updated", user_id),
         parse_mode='HTML'
     )
-    # Возвращаем в меню кошельков
     return await wallet_menu(update, context)
 
 # ============================================================
-# 10. ОБРАБОТЧИК ИНЛАЙН-КНОПОК (ГЛАВНЫЙ)
+# 12. РЕФЕРАЛЬНАЯ КНОПКА
+# ============================================================
+async def ref_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    # Генерируем уникальный код для пользователя (если нет)
+    ref_code = f"ref_{user_id}"
+    link = f"https://t.me/{BOT_USERNAME}?start={ref_code}"
+    refs = len(referrals.get(user_id, []))
+    earned = referral_earnings.get(user_id, 0.0)
+
+    text = get_text("ref_title", user_id,
+                    link=link,
+                    refs=refs,
+                    earned=earned,
+                    percent=REFERRAL_PERCENT)
+    keyboard = [[InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+
+# ============================================================
+# 13. СМЕНА ЯЗЫКА
+# ============================================================
+async def lang_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    text = get_text("lang_title", user_id)
+    keyboard = [
+        [InlineKeyboardButton("English", callback_data="lang_en")],
+        [InlineKeyboardButton("Русский", callback_data="lang_ru")],
+        [InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+
+async def set_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    lang = query.data.split('_')[1]  # lang_en или lang_ru
+    user_lang[user_id] = lang
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=get_text("lang_changed", user_id, lang=LANGUAGES[lang]["name"]),
+        parse_mode='HTML'
+    )
+    # Показываем главное меню на новом языке
+    await show_main_menu(update, context)
+
+# ============================================================
+# 14. ТЕХПОДДЕРЖКА
+# ============================================================
+async def support_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    text = get_text("support_title", user_id)
+    keyboard = [[InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML',
+        disable_web_page_preview=True,
+        reply_markup=reply_markup
+    )
+
+# ============================================================
+# 15. ОБРАБОТЧИК ГЛАВНЫХ КНОПОК
 # ============================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -529,46 +783,35 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     data = query.data
 
-    # Если это создание сделки – передаём в ConversationHandler
     if data == 'create_deal':
         await create_deal_start(update, context)
         return
-
-    # Если это управление кошельком – запускаем соответствующий диалог
-    if data == 'wallet':
+    elif data == 'wallet':
         await wallet_menu(update, context)
         return
+    elif data == 'ref':
+        await ref_button(update, context)
+        return
+    elif data == 'lang':
+        await lang_menu(update, context)
+        return
+    elif data == 'support':
+        await support_button(update, context)
+        return
+    elif data.startswith('lang_'):
+        await set_lang(update, context)
+        return
 
-    # Остальные кнопки – удаляем сообщение и отправляем новый текст
     await query.message.delete()
 
-    if data == 'ref':
-        text = (
-            f"{EMOJI_TAGS['link']} <b>Реферальная ссылка</b>\n\n"
-            f"<code>https://t.me/{BOT_USERNAME}?start=ref_{user_id}</code>"
-        )
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-    elif data == 'lang':
-        text = f"{EMOJI_TAGS['globe']} <b>Смена языка</b>\n\nДоступен русский."
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
-    elif data == 'support':
-        text = f"{EMOJI_TAGS['heart']} <b>Поддержка</b>\n\n<a href='{SUPPORT_URL}'>Форма связи</a>"
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML', disable_web_page_preview=True)
-    elif data == 'admin_panel':
+    if data == 'admin_panel':
         if not is_admin(user_id):
             await context.bot.send_message(chat_id=update.effective_chat.id, text="⛔ Нет доступа.")
             return
-        text = (
-            f"{EMOJI_TAGS['star']} <b>Админ-панель</b>\n\n"
-            f"/wrfas – список команд\n"
-            f"/buyslnft &lt;ID&gt; – завершить сделку\n"
-            f"/vidach &lt;user_id&gt; &lt;сумма&gt; – пополнить баланс\n"
-            f"/sdelkibo &lt;user_id&gt; – накрутить сделки"
-        )
+        text = get_text("admin_panel", user_id)
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
     elif data == 'back_to_menu':
-        # Возвращаем главное меню
-        await start(update, context)
+        await show_main_menu(update, context)
     elif data.startswith('cancel_deal_'):
         deal_id = int(data.split('_')[2])
         deal = deals.get(deal_id)
@@ -576,48 +819,41 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             deal['status'] = 'canceled'
             if deal['creator'] in user_deals:
                 user_deals[deal['creator']] = [d for d in user_deals[deal['creator']] if d != deal_id]
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Сделка отменена.")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_canceled", user_id))
         else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Сделка не найдена или уже неактивна.")
-        await start(update, context)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_not_found", user_id))
+        await show_main_menu(update, context)
     elif data.startswith('confirm_deal_'):
         deal_id = int(data.split('_')[2])
         deal = deals.get(deal_id)
         if deal and deal['status'] == 'active':
             deal['status'] = 'completed'
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="✅ Сделка подтверждена и завершена!")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_confirmed", user_id))
         else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Сделка не найдена или уже завершена.")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_not_found", user_id))
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Неизвестная команда.")
 
 # ============================================================
-# 11. ОБЫЧНЫЕ КОМАНДЫ
+# 16. ОБЫЧНЫЕ КОМАНДЫ
 # ============================================================
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n/start – главное меню\n/help – эта справка"
-    await update.message.reply_text(text, parse_mode='HTML')
+    user_id = update.effective_user.id
+    await update.message.reply_text(get_text("help_text", user_id), parse_mode='HTML')
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Этот обработчик не будет вызван, если активен ConversationHandler
+    user_id = update.effective_user.id
     await update.message.reply_text("Используйте /start для главного меню.")
 
 # ============================================================
-# 12. АДМИН-КОМАНДЫ
+# 17. АДМИН-КОМАНДЫ
 # ============================================================
 async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
         return
-    text = (
-        f"{EMOJI_TAGS['star']} <b>Список админ-команд:</b>\n\n"
-        f"🔹 <code>/wrfas</code> – показать этот список и закрепить сообщение.\n"
-        f"🔹 <code>/buyslnft &lt;ID_сделки&gt;</code> – завершить сделку. Продавцу начисляются средства.\n"
-        f"🔹 <code>/vidach &lt;user_id&gt; &lt;сумма&gt;</code> – пополнить баланс.\n"
-        f"🔹 <code>/sdelkibo &lt;user_id&gt;</code> – создать фиктивные сделки.\n\n"
-        f"<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
-    )
+    text = get_text("admin_panel", user_id) + "\n\n" + f"<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
     msg = await update.message.reply_text(text, parse_mode='HTML')
     try:
         await context.bot.pin_chat_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
@@ -705,13 +941,13 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ============================================================
-# 13. ЗАПУСК
+# 18. ЗАПУСК
 # ============================================================
 def main():
     application = Application.builder().token(TOKEN).build()
 
-    # ConversationHandler для создания сделки
-    conv_handler_deal = ConversationHandler(
+    # ConversationHandler для сделки
+    conv_deal = ConversationHandler(
         entry_points=[CallbackQueryHandler(create_deal_start, pattern='^create_deal$')],
         states={
             AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, create_deal_amount)],
@@ -724,10 +960,10 @@ def main():
         ],
         allow_reentry=True,
     )
-    application.add_handler(conv_handler_deal)
+    application.add_handler(conv_deal)
 
-    # ConversationHandler для управления кошельками
-    conv_handler_wallet = ConversationHandler(
+    # ConversationHandler для кошелька
+    conv_wallet = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(wallet_menu, pattern='^wallet$'),
             CallbackQueryHandler(wallet_ton_start, pattern='^wallet_ton$'),
@@ -758,20 +994,10 @@ def main():
             CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
         ],
         allow_reentry=True,
-        map_to_parent={
-            WALLET_MAIN: WALLET_MAIN,
-            WALLET_TON_INPUT: WALLET_TON_INPUT,
-            WALLET_SBP_PHONE: WALLET_SBP_PHONE,
-            WALLET_SBP_BANK: WALLET_SBP_BANK,
-            WALLET_CARD_RF_INPUT: WALLET_CARD_RF_INPUT,
-            WALLET_CARD_RF_BANK: WALLET_CARD_RF_BANK,
-            WALLET_CARD_UA_INPUT: WALLET_CARD_UA_INPUT,
-            WALLET_CARD_UA_BANK: WALLET_CARD_UA_BANK,
-        }
     )
-    application.add_handler(conv_handler_wallet)
+    application.add_handler(conv_wallet)
 
-    # Остальные обработчики
+    # Остальные хендлеры
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("wrfas", wrfas))
