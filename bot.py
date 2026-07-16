@@ -2,20 +2,21 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
-# ---------- ЛОГИРОВАНИЕ ----------
+# ---------- ЛОГИ ----------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# ---------- КОНФИГУРАЦИЯ ----------
+# ---------- КОНФИГ ----------
 TOKEN = "8578762350:AAFrd1SgZzm7IvELjcwrj6anShyzHeZlCws"
 ADMIN_IDS = [8400055743, 8297446667]
 BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
+GUIDE_URL = "https://telegra.ph/Podrobnyj-gajd-po-ispolzovaniyu-GiftElfRobot-04-25"
 
-# ---------- ПРЕМИУМ-ЭМОДЗИ (HTML-теги) ----------
+# ---------- ПРЕМИУМ-ЭМОДЗИ (HTML-теги для текстов, символы для кнопок) ----------
 EMOJI_TAGS = {
     "rocket": '<tg-emoji emoji-id="5195033767969839232">🚀</tg-emoji>',
     "shield": '<tg-emoji emoji-id="5197288647275071607">🛡</tg-emoji>',
@@ -33,14 +34,18 @@ EMOJI_TAGS = {
     "coin2": '<tg-emoji emoji-id="5264713049637409446">🪙</tg-emoji>',
     "chart": '<tg-emoji emoji-id="5190806721286657692">📊</tg-emoji>',
     "globe": '<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji>',
-    "users": '<tg-emoji emoji-id="5958460691550572213">👥</tg-emoji>'
+    "users": '<tg-emoji emoji-id="5958460691550572213">👥</tg-emoji>',
+    "wallet": '<tg-emoji emoji-id="5445353829304387411">💳</tg-emoji>',   # карта для кошелька
+    "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>',    # нет точного – используем ✔️
+    "lang": '<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji>'
 }
+# Обычные символы для кнопок (извлекаем из тегов)
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ---------- ХРАНИЛИЩА ----------
-balances = {}
-deals = {}
-user_deals = {}
+balances = {}          # user_id -> float
+deals = {}             # deal_id -> {buyer, seller, amount, status, description}
+user_deals = {}        # user_id -> list of deal_ids
 deal_counter = 0
 
 def is_admin(user_id: int) -> bool:
@@ -67,32 +72,38 @@ def create_deal(buyer: int, seller: int, amount: float, description: str = ""):
     user_deals.setdefault(seller, []).append(deal_id)
     return deal_id
 
-# ---------- ОБРАБОТЧИКИ ----------
+# ---------- ГЛАВНОЕ МЕНЮ (как на скриншоте) ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = (
-        f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в OTC/P2P бот!</b>\n\n"
-        f"Здесь вы можете безопасно покупать и продавать цифровые активы.\n"
-        f"{EMOJI_TAGS['shield']} Все сделки защищены арбитражем.\n\n"
-        f"Используйте кнопки ниже для навигации."
+        f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
+        f"<b>Покупайте и продавайте всё, что угодно – безопасно!</b>\n"
+        f"От Telegram-подарков и NFT до токенов и фиата – сделки проходят легко и без риска.\n\n"
+        f"• Удобное управление кошельками\n"
+        f"• Реферальная система\n\n"
+        f"<b>Как пользоваться?</b>\n"
+        f"Ознакомьтесь с инструкцией —\n"
+        f"<a href='{GUIDE_URL}'>Подробный гайд по использованию</a>\n\n"
+        f"Выберите нужный раздел ниже:"
     )
     await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=BANNER_URL,
         caption=caption,
-        parse_mode='HTML'
+        parse_mode='HTML',
+        disable_web_page_preview=True
     )
     await show_main_menu(update, context)
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
     keyboard = [
-        [InlineKeyboardButton(f"{SYMBOLS['money']} Купить", callback_data='buy')],
-        [InlineKeyboardButton(f"{SYMBOLS['coin']} Продать", callback_data='sell')],
-        [InlineKeyboardButton(f"{SYMBOLS['receipt']} Мои сделки", callback_data='my_deals')],
-        [InlineKeyboardButton(f"{SYMBOLS['card']} Баланс", callback_data='balance')],
+        [InlineKeyboardButton(f"{SYMBOLS['wallet']} Добавить/изменить кошелёк", callback_data='wallet')],
+        [InlineKeyboardButton(f"{SYMBOLS['money']} Создать сделку", callback_data='create_deal')],
+        [InlineKeyboardButton(f"{SYMBOLS['link']} Реферальная ссылка", callback_data='ref')],
+        [InlineKeyboardButton(f"{SYMBOLS['lang']} Сменить язык", callback_data='lang')],
         [InlineKeyboardButton(f"{SYMBOLS['heart']} Поддержка", callback_data='support')],
     ]
-    if is_admin(user_id):
+    # Для админов – дополнительная кнопка (можно скрыть)
+    if is_admin(update.effective_user.id):
         keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -101,47 +112,44 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='HTML'
     )
 
+# ---------- ОБРАБОТЧИК ИНЛАЙН-КНОПОК ----------
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
     data = query.data
 
-    if data == 'buy':
+    if data == 'wallet':
         text = (
-            f"{EMOJI_TAGS['money']} <b>Покупка USDT</b>\n\n"
-            f"Курс: 1 USDT = 1.00 USD\n"
-            f"Минимальная сумма: 10 USDT\n"
-            f"Максимальная: 1000 USDT\n\n"
-            f"Чтобы создать заявку, отправьте команду:\n"
-            f"/buy &lt;сумма&gt; &lt;валюта&gt; (например: /buy 100 RUB)"
+            f"{EMOJI_TAGS['wallet']} <b>Управление кошельками</b>\n\n"
+            f"Вы можете добавить кошелёк для приёма средств или изменить существующий.\n"
+            f"Функция в разработке – скоро появится."
         )
         await query.edit_message_text(text, parse_mode='HTML')
-    elif data == 'sell':
+    elif data == 'create_deal':
         text = (
-            f"{EMOJI_TAGS['coin']} <b>Продажа USDT</b>\n\n"
-            f"Курс: 1 USDT = 1.00 USD\n"
-            f"Минимальная сумма: 10 USDT\n"
-            f"Максимальная: 1000 USDT\n\n"
-            f"Чтобы создать заявку, отправьте команду:\n"
-            f"/sell &lt;сумма&gt; &lt;валюта&gt; (например: /sell 100 RUB)"
+            f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\n"
+            f"Чтобы создать сделку (покупка или продажа NFT/токенов):\n"
+            f"/buy &lt;сумма&gt; &lt;валюта&gt; – вы покупатель\n"
+            f"/sell &lt;сумма&gt; &lt;валюта&gt; – вы продавец\n\n"
+            f"Пример: /buy 100 USDT\n"
+            f"После создания сделка будет ожидать подтверждения арбитром."
         )
         await query.edit_message_text(text, parse_mode='HTML')
-    elif data == 'my_deals':
-        deals_list = user_deals.get(user_id, [])
-        if not deals_list:
-            text = f"{EMOJI_TAGS['receipt']} У вас нет активных сделок."
-        else:
-            text = f"{EMOJI_TAGS['receipt']} <b>Ваши сделки:</b>\n"
-            for d_id in deals_list:
-                deal = deals.get(d_id)
-                if deal:
-                    status = "✅ Завершена" if deal['status'] == 'completed' else "🔄 Активна"
-                    text += f"\n🔹 ID: {d_id} | {deal['description']}\n   Сумма: {deal['amount']} USDT | Статус: {status}\n"
+    elif data == 'ref':
+        text = (
+            f"{EMOJI_TAGS['link']} <b>Реферальная система</b>\n\n"
+            f"Ваша реферальная ссылка:\n"
+            f"<code>https://t.me/YourBotBot?start=ref_{user_id}</code>\n\n"
+            f"Приглашайте друзей – получайте бонусы за каждую сделку!"
+        )
         await query.edit_message_text(text, parse_mode='HTML')
-    elif data == 'balance':
-        bal = get_balance(user_id)
-        text = f"{EMOJI_TAGS['card']} <b>Ваш баланс:</b> {bal:.2f} USDT"
+    elif data == 'lang':
+        text = (
+            f"{EMOJI_TAGS['lang']} <b>Смена языка</b>\n\n"
+            f"Доступные языки: Русский, English.\n"
+            f"Пока доступен только русский."
+        )
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'support':
         text = (
@@ -152,30 +160,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, parse_mode='HTML', disable_web_page_preview=True)
     elif data == 'admin_panel':
         if not is_admin(user_id):
-            await query.edit_message_text("⛔ У вас нет доступа к админ-панели.")
+            await query.edit_message_text("⛔ Нет доступа.")
             return
         text = (
             f"{EMOJI_TAGS['star']} <b>Админ-панель</b>\n\n"
-            f"Доступные команды (вводите вручную):\n"
-            f"/wrfas - список админ-команд\n"
-            f"/buyslnft &lt;ID_сделки&gt; - завершить сделку\n"
-            f"/vidach &lt;user_id&gt; &lt;сумма&gt; - пополнить баланс\n"
-            f"/sdelkibo &lt;user_id&gt; - накрутить сделки\n\n"
-            f"Владельцы: {', '.join(str(uid) for uid in ADMIN_IDS)}"
+            f"Команды (вводите вручную):\n"
+            f"/wrfas – список команд с закреплением\n"
+            f"/buyslnft &lt;ID&gt; – завершить сделку\n"
+            f"/vidach &lt;user_id&gt; &lt;сумма&gt; – пополнить баланс\n"
+            f"/sdelkibo &lt;user_id&gt; – накрутить сделки"
         )
         await query.edit_message_text(text, parse_mode='HTML')
     else:
         await query.edit_message_text("Неизвестная команда.")
 
+# ---------- ОБЫЧНЫЕ КОМАНДЫ ----------
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n"
-        f"/start - главное меню\n"
-        f"/help - эта справка\n"
-        f"/buy &lt;сумма&gt; &lt;валюта&gt; - создать заявку на покупку\n"
-        f"/sell &lt;сумма&gt; &lt;валюта&gt; - создать заявку на продажу\n"
-        f"Для администраторов:\n"
-        f"/wrfas - список админ-команд"
+        f"/start – главное меню\n"
+        f"/help – эта справка\n"
+        f"/buy &lt;сумма&gt; &lt;валюта&gt; – создать заявку на покупку\n"
+        f"/sell &lt;сумма&gt; &lt;валюта&gt; – создать заявку на продажу"
     )
     await update.message.reply_text(text, parse_mode='HTML')
 
@@ -185,28 +191,25 @@ async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
         return
-
     text = (
         f"{EMOJI_TAGS['star']} <b>Список админ-команд:</b>\n\n"
         f"🔹 <code>/wrfas</code> – показать этот список и закрепить сообщение.\n"
         f"🔹 <code>/buyslnft &lt;ID_сделки&gt;</code> – завершить активную сделку. Продавцу начисляются средства.\n"
         f"🔹 <code>/vidach &lt;user_id&gt; &lt;сумма&gt;</code> – пополнить баланс указанного пользователя.\n"
-        f"🔹 <code>/sdelkibo &lt;user_id&gt;</code> – создать несколько фиктивных сделок для пользователя (для демонстрации).\n\n"
-        f"<b>Владельцы бота:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
+        f"🔹 <code>/sdelkibo &lt;user_id&gt;</code> – создать несколько фиктивных сделок для демонстрации.\n\n"
+        f"<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
     )
-
     msg = await update.message.reply_text(text, parse_mode='HTML')
     try:
         await context.bot.pin_chat_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
     except Exception as e:
-        logger.warning(f"Не удалось закрепить сообщение: {e}")
+        logger.warning(f"Не удалось закрепить: {e}")
 
 async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
         return
-
     args = context.args
     if not args:
         await update.message.reply_text("⚠️ Укажите ID сделки: /buyslnft <ID>")
@@ -216,7 +219,6 @@ async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("⚠️ ID должен быть числом.")
         return
-
     deal = deals.get(deal_id)
     if not deal:
         await update.message.reply_text(f"❌ Сделка с ID {deal_id} не найдена.")
@@ -224,12 +226,10 @@ async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if deal['status'] == 'completed':
         await update.message.reply_text(f"ℹ️ Сделка {deal_id} уже завершена.")
         return
-
     seller_id = deal['seller']
     amount = deal['amount']
     add_balance(seller_id, amount)
     deal['status'] = 'completed'
-
     await update.message.reply_text(
         f"{EMOJI_TAGS['check']} Сделка {deal_id} завершена.\n"
         f"Продавцу (ID: {seller_id}) начислено {amount} USDT."
@@ -240,7 +240,6 @@ async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
         return
-
     args = context.args
     if len(args) < 2:
         await update.message.reply_text("⚠️ Использование: /vidach <user_id> <сумма>")
@@ -249,13 +248,11 @@ async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
         target_id = int(args[0])
         amount = float(args[1])
     except ValueError:
-        await update.message.reply_text("⚠️ Некорректный формат. user_id – число, сумма – число.")
+        await update.message.reply_text("⚠️ Некорректный формат.")
         return
-
     if amount <= 0:
         await update.message.reply_text("⚠️ Сумма должна быть положительной.")
         return
-
     add_balance(target_id, amount)
     await update.message.reply_text(
         f"{EMOJI_TAGS['money']} Баланс пользователя {target_id} пополнен на {amount:.2f} USDT.\n"
@@ -267,7 +264,6 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
         return
-
     args = context.args
     if not args:
         await update.message.reply_text("⚠️ Укажите ID пользователя: /sdelkibo <user_id>")
@@ -277,8 +273,7 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("⚠️ ID должен быть числом.")
         return
-
-    descriptions = ["Покупка USDT", "Продажа BTC", "Обмен ETH", "Продажа USDT (фиктивная)"]
+    descriptions = ["Покупка NFT", "Продажа NFT", "Обмен токенов", "Продажа NFT (фиктивная)"]
     for i, desc in enumerate(descriptions):
         if i == 3:
             buyer = ADMIN_IDS[0]
@@ -288,59 +283,57 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             seller = ADMIN_IDS[0]
         amount = round(10 + (hash(desc + str(i)) % 100), 2)
         create_deal(buyer, seller, amount, description=desc)
-
     await update.message.reply_text(
         f"{EMOJI_TAGS['briefcase']} Для пользователя {target_id} создано 4 фиктивные сделки.\n"
-        f"Используйте /my_deals или посмотрите в меню 'Мои сделки'."
+        f"Используйте /my_deals или меню 'Мои сделки' (если добавите)."
     )
 
+# ---------- ОБРАБОТЧИК ТЕКСТА (/buy, /sell) ----------
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     if text.startswith('/buy'):
         args = text.split()
         if len(args) < 2:
-            await update.message.reply_text("⚠️ Укажите сумму и валюту, например: /buy 100 RUB")
+            await update.message.reply_text("⚠️ Укажите сумму и валюту, например: /buy 100 USDT")
             return
         try:
             amount = float(args[1])
         except ValueError:
             await update.message.reply_text("⚠️ Сумма должна быть числом.")
             return
-        currency = args[2] if len(args) > 2 else "USD"
+        currency = args[2] if len(args) > 2 else "USDT"
         buyer = update.effective_user.id
-        seller = ADMIN_IDS[0]
-        deal_id = create_deal(buyer, seller, amount, description=f"Покупка {amount} USDT за {currency}")
+        seller = ADMIN_IDS[0]  # продавец – первый админ (арбитр)
+        deal_id = create_deal(buyer, seller, amount, description=f"Покупка {amount} {currency}")
         await update.message.reply_text(
             f"{EMOJI_TAGS['money2']} Заявка на покупку создана!\n"
             f"ID сделки: {deal_id}\n"
-            f"Сумма: {amount} USDT\n"
-            f"Валюта: {currency}\n"
-            f"Статус: ожидает подтверждения."
+            f"Сумма: {amount} {currency}\n"
+            f"Статус: ожидает подтверждения продавца."
         )
     elif text.startswith('/sell'):
         args = text.split()
         if len(args) < 2:
-            await update.message.reply_text("⚠️ Укажите сумму и валюту, например: /sell 100 RUB")
+            await update.message.reply_text("⚠️ Укажите сумму и валюту, например: /sell 100 USDT")
             return
         try:
             amount = float(args[1])
         except ValueError:
             await update.message.reply_text("⚠️ Сумма должна быть числом.")
             return
-        currency = args[2] if len(args) > 2 else "USD"
+        currency = args[2] if len(args) > 2 else "USDT"
         buyer = ADMIN_IDS[0]
         seller = update.effective_user.id
-        deal_id = create_deal(buyer, seller, amount, description=f"Продажа {amount} USDT за {currency}")
+        deal_id = create_deal(buyer, seller, amount, description=f"Продажа {amount} {currency}")
         await update.message.reply_text(
             f"{EMOJI_TAGS['coin2']} Заявка на продажу создана!\n"
             f"ID сделки: {deal_id}\n"
-            f"Сумма: {amount} USDT\n"
-            f"Валюта: {currency}\n"
-            f"Статус: ожидает подтверждения."
+            f"Сумма: {amount} {currency}\n"
+            f"Статус: ожидает подтверждения покупателя."
         )
     else:
         await update.message.reply_text(
-            f"{EMOJI_TAGS['pin']} Используйте /start для главного меню или /help для справки."
+            f"{EMOJI_TAGS['pin']} Используйте /start для главного меню."
         )
 
 # ---------- ЗАПУСК ----------
@@ -355,7 +348,7 @@ def main():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    logger.info("Бот запущен и работает в режиме long polling")
+    logger.info("Бот запущен в режиме long polling")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
