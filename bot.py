@@ -96,6 +96,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
+    # Ключевое исправление: убрали disable_web_page_preview
     await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=BANNER_URL,
@@ -112,43 +113,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
 
     if data == 'wallet':
-        text = (
-            f"{EMOJI_TAGS['wallet']} <b>Управление кошельками</b>\n\n"
-            f"Вы можете добавить кошелёк для приёма средств или изменить существующий.\n"
-            f"Функция в разработке – скоро появится."
-        )
+        text = f"{EMOJI_TAGS['wallet']} <b>Управление кошельками</b>\n\nФункция в разработке."
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'create_deal':
         text = (
             f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\n"
-            f"Чтобы создать сделку (покупка или продажа NFT/токенов):\n"
             f"/buy &lt;сумма&gt; &lt;валюта&gt; – вы покупатель\n"
-            f"/sell &lt;сумма&gt; &lt;валюта&gt; – вы продавец\n\n"
-            f"Пример: /buy 100 USDT\n"
-            f"После создания сделка будет ожидать подтверждения арбитром."
+            f"/sell &lt;сумма&gt; &lt;валюта&gt; – вы продавец"
         )
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'ref':
-        text = (
-            f"{EMOJI_TAGS['link']} <b>Реферальная система</b>\n\n"
-            f"Ваша реферальная ссылка:\n"
-            f"<code>https://t.me/YourBotBot?start=ref_{user_id}</code>\n\n"
-            f"Приглашайте друзей – получайте бонусы за каждую сделку!"
-        )
+        text = f"{EMOJI_TAGS['link']} <b>Реферальная ссылка</b>\n\n<code>https://t.me/YourBotBot?start=ref_{user_id}</code>"
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'lang':
-        text = (
-            f"{EMOJI_TAGS['globe']} <b>Смена языка</b>\n\n"
-            f"Доступные языки: Русский, English.\n"
-            f"Пока доступен только русский."
-        )
+        text = f"{EMOJI_TAGS['globe']} <b>Смена языка</b>\n\nДоступен русский."
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'support':
-        text = (
-            f"{EMOJI_TAGS['heart']} <b>Техническая поддержка</b>\n\n"
-            f"Для связи с нами заполните форму:\n"
-            f"<a href='{SUPPORT_URL}'>Нажмите здесь</a>"
-        )
+        text = f"{EMOJI_TAGS['heart']} <b>Поддержка</b>\n\n<a href='{SUPPORT_URL}'>Форма связи</a>"
         await query.edit_message_text(text, parse_mode='HTML', disable_web_page_preview=True)
     elif data == 'admin_panel':
         if not is_admin(user_id):
@@ -156,8 +137,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         text = (
             f"{EMOJI_TAGS['star']} <b>Админ-панель</b>\n\n"
-            f"Команды (вводите вручную):\n"
-            f"/wrfas – список команд с закреплением\n"
+            f"/wrfas – список команд\n"
             f"/buyslnft &lt;ID&gt; – завершить сделку\n"
             f"/vidach &lt;user_id&gt; &lt;сумма&gt; – пополнить баланс\n"
             f"/sdelkibo &lt;user_id&gt; – накрутить сделки"
@@ -168,13 +148,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- ОБЫЧНЫЕ КОМАНДЫ ----------
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n"
-        f"/start – главное меню\n"
-        f"/help – эта справка\n"
-        f"/buy &lt;сумма&gt; &lt;валюта&gt; – создать заявку на покупку\n"
-        f"/sell &lt;сумма&gt; &lt;валюта&gt; – создать заявку на продажу"
-    )
+    text = f"{EMOJI_TAGS['pin']} <b>Команды:</b>\n/start\n/help\n/buy <сумма> <валюта>\n/sell <сумма> <валюта>"
     await update.message.reply_text(text, parse_mode='HTML')
 
 # ---------- АДМИН-КОМАНДЫ ----------
@@ -184,12 +158,12 @@ async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Нет доступа.")
         return
     text = (
-        f"{EMOJI_TAGS['star']} <b>Список админ-команд:</b>\n\n"
-        f"🔹 <code>/wrfas</code> – показать этот список и закрепить сообщение.\n"
-        f"🔹 <code>/buyslnft &lt;ID_сделки&gt;</code> – завершить активную сделку. Продавцу начисляются средства.\n"
-        f"🔹 <code>/vidach &lt;user_id&gt; &lt;сумма&gt;</code> – пополнить баланс указанного пользователя.\n"
-        f"🔹 <code>/sdelkibo &lt;user_id&gt;</code> – создать несколько фиктивных сделок для демонстрации.\n\n"
-        f"<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
+        f"{EMOJI_TAGS['star']} <b>Админ-команды:</b>\n\n"
+        f"🔹 /wrfas – этот список\n"
+        f"🔹 /buyslnft <ID> – завершить сделку\n"
+        f"🔹 /vidach <user_id> <сумма> – пополнить баланс\n"
+        f"🔹 /sdelkibo <user_id> – накрутить сделки\n\n"
+        f"Владельцы: {', '.join(str(uid) for uid in ADMIN_IDS)}"
     )
     msg = await update.message.reply_text(text, parse_mode='HTML')
     try:
@@ -213,7 +187,7 @@ async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     deal = deals.get(deal_id)
     if not deal:
-        await update.message.reply_text(f"❌ Сделка с ID {deal_id} не найдена.")
+        await update.message.reply_text(f"❌ Сделка {deal_id} не найдена.")
         return
     if deal['status'] == 'completed':
         await update.message.reply_text(f"ℹ️ Сделка {deal_id} уже завершена.")
@@ -223,8 +197,7 @@ async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_balance(seller_id, amount)
     deal['status'] = 'completed'
     await update.message.reply_text(
-        f"{EMOJI_TAGS['check']} Сделка {deal_id} завершена.\n"
-        f"Продавцу (ID: {seller_id}) начислено {amount} USDT."
+        f"{EMOJI_TAGS['check']} Сделка {deal_id} завершена. Продавцу {seller_id} начислено {amount} USDT."
     )
 
 async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -240,15 +213,14 @@ async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
         target_id = int(args[0])
         amount = float(args[1])
     except ValueError:
-        await update.message.reply_text("⚠️ Некорректный формат.")
+        await update.message.reply_text("⚠️ Неверный формат.")
         return
     if amount <= 0:
-        await update.message.reply_text("⚠️ Сумма должна быть положительной.")
+        await update.message.reply_text("⚠️ Сумма > 0.")
         return
     add_balance(target_id, amount)
     await update.message.reply_text(
-        f"{EMOJI_TAGS['money']} Баланс пользователя {target_id} пополнен на {amount:.2f} USDT.\n"
-        f"Текущий баланс: {get_balance(target_id):.2f} USDT."
+        f"{EMOJI_TAGS['money']} Баланс {target_id} пополнен на {amount:.2f} USDT. Текущий баланс: {get_balance(target_id):.2f} USDT."
     )
 
 async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -276,7 +248,7 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         amount = round(10 + (hash(desc + str(i)) % 100), 2)
         create_deal(buyer, seller, amount, description=desc)
     await update.message.reply_text(
-        f"{EMOJI_TAGS['briefcase']} Для пользователя {target_id} создано 4 фиктивные сделки."
+        f"{EMOJI_TAGS['briefcase']} Для {target_id} создано 4 фиктивные сделки."
     )
 
 # ---------- ОБРАБОТЧИК ТЕКСТА (/buy, /sell) ----------
@@ -297,10 +269,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         seller = ADMIN_IDS[0]
         deal_id = create_deal(buyer, seller, amount, description=f"Покупка {amount} {currency}")
         await update.message.reply_text(
-            f"{EMOJI_TAGS['money2']} Заявка на покупку создана!\n"
-            f"ID сделки: {deal_id}\n"
-            f"Сумма: {amount} {currency}\n"
-            f"Статус: ожидает подтверждения продавца."
+            f"{EMOJI_TAGS['money2']} Заявка на покупку создана! ID: {deal_id}"
         )
     elif text.startswith('/sell'):
         args = text.split()
@@ -317,22 +286,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         seller = update.effective_user.id
         deal_id = create_deal(buyer, seller, amount, description=f"Продажа {amount} {currency}")
         await update.message.reply_text(
-            f"{EMOJI_TAGS['coin2']} Заявка на продажу создана!\n"
-            f"ID сделки: {deal_id}\n"
-            f"Сумма: {amount} {currency}\n"
-            f"Статус: ожидает подтверждения покупателя."
+            f"{EMOJI_TAGS['coin2']} Заявка на продажу создана! ID: {deal_id}"
         )
     else:
-        await update.message.reply_text(
-            f"{EMOJI_TAGS['pin']} Используйте /start для главного меню."
-        )
+        await update.message.reply_text(f"{EMOJI_TAGS['pin']} Используйте /start.")
 
-# ---------- FLASK ДЛЯ WEBHOOK И HEALTH CHECK ----------
+# ---------- FLASK ДЛЯ WEBHOOK ----------
 app = Flask(__name__)
 
 @app.route('/webhook', methods=['POST'])
 async def webhook():
-    """Принимает обновления от Telegram."""
     update = Update.de_json(request.get_json(force=True), application.bot)
     await application.process_update(update)
     return 'ok', 200
@@ -344,10 +307,7 @@ def health():
 
 # ---------- ЗАПУСК ----------
 if __name__ == '__main__':
-    # 1. Создаём приложение
     application = Application.builder().token(TOKEN).build()
-    
-    # 2. Регистрируем обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("wrfas", wrfas))
@@ -357,16 +317,13 @@ if __name__ == '__main__':
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    # 3. Настраиваем Webhook
     port = int(os.environ.get("PORT", 10000))
-    # Render сам подставляет внешний URL в переменную RENDER_EXTERNAL_HOSTNAME
     external_url = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     if external_url:
         webhook_url = f"https://{external_url}/webhook"
-        logger.info(f"Устанавливаем вебхук: {webhook_url}")
+        logger.info(f"Установка вебхука: {webhook_url}")
         application.bot.set_webhook(url=webhook_url)
     else:
         logger.warning("RENDER_EXTERNAL_HOSTNAME не найдена, вебхук не установлен.")
 
-    # 4. Запускаем Flask (он будет слушать порт и принимать запросы)
     app.run(host="0.0.0.0", port=port)
