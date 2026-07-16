@@ -65,7 +65,7 @@ EMOJI_TAGS = {
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ============================================================
-# 4. ЛОКАЛИЗАЦИЯ (с обновлёнными текстами для способа оплаты)
+# 4. ЛОКАЛИЗАЦИЯ (полная, без f-строк)
 # ============================================================
 LANGUAGES = {
     "ru": {
@@ -441,11 +441,20 @@ def get_deal_by_code(code: str):
             return deal
     return None
 
+def add_balance(user_id: int, amount: float):
+    balances[user_id] = balances.get(user_id, 0) + amount
+
+def get_balance(user_id: int) -> float:
+    return balances.get(user_id, 0)
+
 # ============================================================
-# 8. ГЛАВНОЕ МЕНЮ И ОБРАБОТЧИКИ (без кнопки админа)
+# 8. ГЛАВНОЕ МЕНЮ (БЕЗ КНОПКИ АДМИНА)
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    # Очищаем временные данные при входе через /start (выход из диалога)
+    if user_id in temp_deal_data:
+        del temp_deal_data[user_id]
     username = update.effective_user.username or "no_username"
     log_action(user_id, username, "start", "Запуск бота")
     if context.args:
@@ -593,7 +602,7 @@ async def cancel_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # ============================================================
-# 10. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ (без изменений, но логируем)
+# 10. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ
 # ============================================================
 async def wallet_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -977,6 +986,7 @@ async def setadminis(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         expires = None
+        time_str = None
         if len(args) >= 3:
             time_str = args[2]
             unit = time_str[-1]
@@ -1183,6 +1193,7 @@ def main():
         },
         fallbacks=[
             CommandHandler('cancel', cancel_dialog),
+            CommandHandler('start', start),  # <-- добавлено
             CallbackQueryHandler(cancel_dialog, pattern='^cancel_dialog$'),
             CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
         ],
@@ -1219,6 +1230,7 @@ def main():
         },
         fallbacks=[
             CommandHandler('cancel', cancel_dialog),
+            CommandHandler('start', start),  # <-- добавлено
             CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
         ],
         allow_reentry=True,
