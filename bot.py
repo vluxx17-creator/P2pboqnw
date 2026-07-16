@@ -1,4 +1,7 @@
 import logging
+import os
+import threading
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
@@ -16,7 +19,7 @@ BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
 GUIDE_URL = "https://telegra.ph/Podrobnyj-gajd-po-ispolzovaniyu-GiftElfRobot-04-25"
 
-# ---------- ПРЕМИУМ-ЭМОДЗИ (HTML для текста, символы для кнопок) ----------
+# ---------- ПРЕМИУМ-ЭМОДЗИ ----------
 EMOJI_TAGS = {
     "rocket": '<tg-emoji emoji-id="5195033767969839232">🚀</tg-emoji>',
     "shield": '<tg-emoji emoji-id="5197288647275071607">🛡</tg-emoji>',
@@ -38,7 +41,6 @@ EMOJI_TAGS = {
     "wallet": '<tg-emoji emoji-id="5445353829304387411">💳</tg-emoji>',
     "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>'
 }
-# Символы для кнопок (извлекаем из тегов)
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ---------- ХРАНИЛИЩА ----------
@@ -71,7 +73,7 @@ def create_deal(buyer: int, seller: int, amount: float, description: str = ""):
     user_deals.setdefault(seller, []).append(deal_id)
     return deal_id
 
-# ---------- ГЛАВНОЕ МЕНЮ (ОДНО СООБЩЕНИЕ: ФОТО + ТЕКСТ + КНОПКИ) ----------
+# ---------- ГЛАВНОЕ МЕНЮ ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = (
         f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
@@ -91,21 +93,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton(f"{SYMBOLS['globe']} Сменить язык", callback_data='lang')],
         [InlineKeyboardButton(f"{SYMBOLS['heart']} Поддержка", callback_data='support')],
     ]
-    # Если админ – добавим кнопку админ-панели (скрыта от обычных)
     if is_admin(update.effective_user.id):
         keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
+    # Убрали disable_web_page_preview — он не поддерживается для send_photo
     await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=BANNER_URL,
         caption=caption,
         parse_mode='HTML',
-        reply_markup=reply_markup,
-        disable_web_page_preview=True
+        reply_markup=reply_markup
     )
 
-# ---------- ОБРАБОТЧИК ИНЛАЙН-КНОПОК ----------
+# ---------- ОБРАБОТЧИКИ КНОПОК ----------
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -295,7 +296,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         currency = args[2] if len(args) > 2 else "USDT"
         buyer = update.effective_user.id
-        seller = ADMIN_IDS[0]  # продавец – первый админ (арбитр)
+        seller = ADMIN_IDS[0]
         deal_id = create_deal(buyer, seller, amount, description=f"Покупка {amount} {currency}")
         await update.message.reply_text(
             f"{EMOJI_TAGS['money2']} Заявка на покупку создана!\n"
@@ -328,8 +329,20 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{EMOJI_TAGS['pin']} Используйте /start для главного меню."
         )
 
-# ---------- ЗАПУСК ----------
-def main():
+# ---------- FLASK ДЛЯ UPTIME ROBOT ----------
+app = Flask(__name__)
+
+@app.route('/')
+@app.route('/health')
+def health():
+    return "OK", 200
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+# ---------- ЗАПУСК БОТА ----------
+def run_bot():
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
@@ -344,4 +357,10 @@ def main():
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
-    main()
+    # Запускаем Flask в отдельном потоке (для Uptime Robot)
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    # Запускаем бота в основном потоке
+    run_bot()
