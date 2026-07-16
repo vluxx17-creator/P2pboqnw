@@ -55,59 +55,59 @@ EMOJI_TAGS = {
     "users": '<tg-emoji emoji-id="5958460691550572213">👥</tg-emoji>',
     "wallet": '<tg-emoji emoji-id="5445353829304387411">💳</tg-emoji>',
     "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>',
-    "phone": '<tg-emoji emoji-id="5444856076954520455">📞</tg-emoji>'  # для поддержки
+    "phone": '<tg-emoji emoji-id="5444856076954520455">📞</tg-emoji>'
 }
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ============================================================
-# 4. ЛОКАЛИЗАЦИЯ
+# 4. ЛОКАЛИЗАЦИЯ (БЕЗ f-СТРОК)
 # ============================================================
 LANGUAGES = {
     "ru": {
         "name": "Русский",
         "welcome": (
-            f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
-            f"<b>Покупайте и продавайте всё, что угодно – безопасно!</b>\n"
-            f"От Telegram-подарков и NFT до токенов и фиата – сделки проходят легко и без риска.\n\n"
-            f"• Удобное управление кошельками\n"
-            f"• Реферальная система\n\n"
-            f"<b>Как пользоваться?</b>\n"
-            f"Ознакомьтесь с инструкцией —\n"
-            f"<a href='{GUIDE_URL}'>Подробный гайд по использованию</a>\n\n"
-            f"Выберите нужный раздел ниже:"
+            "{rocket} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
+            "<b>Покупайте и продавайте всё, что угодно – безопасно!</b>\n"
+            "От Telegram-подарков и NFT до токенов и фиата – сделки проходят легко и без риска.\n\n"
+            "• Удобное управление кошельками\n"
+            "• Реферальная система\n\n"
+            "<b>Как пользоваться?</b>\n"
+            "Ознакомьтесь с инструкцией —\n"
+            "<a href='{guide_url}'>Подробный гайд по использованию</a>\n\n"
+            "Выберите нужный раздел ниже:"
         ),
         "main_menu": "Главное меню",
         "wallet_menu": (
-            f"{EMOJI_TAGS['wallet']} <b>Ваш текущий кошелек:</b>\n"
+            "{wallet} <b>Ваш текущий кошелек:</b>\n"
             "Выбрана оплата в <b>{method}</b>\n\n"
             "Вы можете изменить способ оплаты ниже:"
         ),
-        "wallet_ton_add": f"{EMOJI_TAGS['pen']} <b>Добавление TON-кошелька</b>\n\nПожалуйста, введите ваш TON адрес",
+        "wallet_ton_add": "{pen} <b>Добавление TON-кошелька</b>\n\nПожалуйста, введите ваш TON адрес",
         "wallet_sbp_add": (
-            f"{EMOJI_TAGS['pen']} <b>Добавление СБП</b>\n\n"
-            f"Пожалуйста, введите номер телефона в формате:\n<code>+7(ХХХ)ХХХ-ХХ-ХХ</code>"
+            "{pen} <b>Добавление СБП</b>\n\n"
+            "Пожалуйста, введите номер телефона в формате:\n<code>+7(ХХХ)ХХХ-ХХ-ХХ</code>"
         ),
-        "wallet_sbp_bank": f"{EMOJI_TAGS['pen']} Пожалуйста, уточните, какой у вас банк!",
+        "wallet_sbp_bank": "{pen} Пожалуйста, уточните, какой у вас банк!",
         "wallet_card_add": (
-            f"{EMOJI_TAGS['pen']} <b>Добавление банковской карты</b>\n\n"
-            f"Пожалуйста, введите номер банковской карты в формате:\n<code>XXXX XXXX XXXX XXXX</code>"
+            "{pen} <b>Добавление банковской карты</b>\n\n"
+            "Пожалуйста, введите номер банковской карты в формате:\n<code>XXXX XXXX XXXX XXXX</code>"
         ),
-        "wallet_card_bank": f"{EMOJI_TAGS['pen']} Пожалуйста, уточните, какой у вас банк!",
-        "wallet_stars_updated": f"{EMOJI_TAGS['check']} <b>Настройки обновлены:</b>\nвалюта сделок — STARS",
-        "wallet_ton_success": f"{EMOJI_TAGS['check']} TON-кошелек успешно добавлен!",
-        "wallet_sbp_success": f"{EMOJI_TAGS['check']} Кошелек успешно добавлен/изменен!",
-        "wallet_card_success": f"{EMOJI_TAGS['check']} Кошелек успешно добавлен/изменен!",
-        "create_deal_title": f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\nВведите сумму STARS в формате:\n<code>2000</code>",
-        "create_deal_desc": f"{EMOJI_TAGS['pen']} <b>Укажите, что вы предлагаете в этой сделке:</b>\n\n<i>Пример: 10 Кепок и Пене...</i>",
+        "wallet_card_bank": "{pen} Пожалуйста, уточните, какой у вас банк!",
+        "wallet_stars_updated": "{check} <b>Настройки обновлены:</b>\nвалюта сделок — STARS",
+        "wallet_ton_success": "{check} TON-кошелек успешно добавлен!",
+        "wallet_sbp_success": "{check} Кошелек успешно добавлен/изменен!",
+        "wallet_card_success": "{check} Кошелек успешно добавлен/изменен!",
+        "create_deal_title": "{money} <b>Создание сделки</b>\n\nВведите сумму STARS в формате:\n<code>2000</code>",
+        "create_deal_desc": "{pen} <b>Укажите, что вы предлагаете в этой сделке:</b>\n\n<i>Пример: 10 Кепок и Пене...</i>",
         "create_deal_success": (
-            f"{EMOJI_TAGS['check']} <b>Сделка успешно создана!</b>\n\n"
+            "{check} <b>Сделка успешно создана!</b>\n\n"
             "Сумма: <b>{amount} STARS</b>\n\n"
             "<b>Описание:</b>\n{description}\n\n"
             "Ссылка для покупателя:\n<code>{link}</code>\n\n"
             "<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttg</i>"
         ),
         "deal_info": (
-            f"{EMOJI_TAGS['money']} <b>Информация о сделке</b>\n\n"
+            "{money} <b>Информация о сделке</b>\n\n"
             "Сумма: <b>{amount} STARS</b>\n"
             "Описание: {description}\n\n"
             "Для подтверждения сделки нажмите кнопку ниже."
@@ -115,17 +115,23 @@ LANGUAGES = {
         "deal_confirmed": "✅ Сделка подтверждена и завершена!",
         "deal_canceled": "❌ Сделка отменена.",
         "deal_not_found": "❌ Сделка не найдена или уже неактивна.",
-        "ref_title": f"{EMOJI_TAGS['link']} <b>Ваша реферальная ссылка:</b>\n<code>{link}</code>\n\nКоличество рефералов: {refs}\nЗаработано с рефералов: {earned} RUB\nВы получаете {percent}% от комиссии бота с рефералов.",
-        "lang_title": f"{EMOJI_TAGS['globe']} <b>Choose your language:</b>\n\nВыберите язык:",
+        "ref_title": (
+            "{link_emoji} <b>Ваша реферальная ссылка:</b>\n"
+            "<code>{link}</code>\n\n"
+            "Количество рефералов: {refs}\n"
+            "Заработано с рефералов: {earned} RUB\n"
+            "Вы получаете {percent}% от комиссии бота с рефералов."
+        ),
+        "lang_title": "{globe} <b>Choose your language:</b>\n\nВыберите язык:",
         "lang_changed": "🌐 Язык изменён на {lang}",
-        "support_title": f"{EMOJI_TAGS['phone']} <b>Техническая поддержка</b>\n\nДля связи с нами заполните форму:\n<a href='{SUPPORT_URL}'>Нажмите здесь</a>",
+        "support_title": "{phone} <b>Техническая поддержка</b>\n\nДля связи с нами заполните форму:\n<a href='{support_url}'>Нажмите здесь</a>",
         "back_to_menu": "↩️ Вернуться в меню",
-        "btn_wallet": f"{SYMBOLS['wallet']} Добавить/изменить кошелёк",
-        "btn_create_deal": f"{SYMBOLS['money']} Создать сделку",
-        "btn_ref": f"{SYMBOLS['link']} Реферальная ссылка",
-        "btn_lang": f"{SYMBOLS['globe']} Сменить язык",
-        "btn_support": f"{SYMBOLS['phone']} Поддержка",
-        "btn_admin": f"{SYMBOLS['star']} Админ-панель",
+        "btn_wallet": "{wallet_symbol} Добавить/изменить кошелёк",
+        "btn_create_deal": "{money_symbol} Создать сделку",
+        "btn_ref": "{link_symbol} Реферальная ссылка",
+        "btn_lang": "{globe_symbol} Сменить язык",
+        "btn_support": "{phone_symbol} Поддержка",
+        "btn_admin": "{star_symbol} Админ-панель",
         "btn_ton": "➕ Добавить TON-кошелек",
         "btn_sbp": "➕ Добавить СБП",
         "btn_card_rf": "➕ Добавить банковскую карту (РФ)",
@@ -136,13 +142,13 @@ LANGUAGES = {
         "btn_cancel_deal": "❌ Отменить сделку",
         "btn_back": "↩️ Вернуться в меню",
         "admin_panel": (
-            f"{EMOJI_TAGS['star']} <b>Админ-панель</b>\n\n"
-            f"/wrfas – список команд\n"
-            f"/buyslnft &lt;ID&gt; – завершить сделку\n"
-            f"/vidach &lt;user_id&gt; &lt;сумма&gt; – пополнить баланс\n"
-            f"/sdelkibo &lt;user_id&gt; – накрутить сделки"
+            "{star} <b>Админ-панель</b>\n\n"
+            "/wrfas – список команд\n"
+            "/buyslnft <ID> – завершить сделку\n"
+            "/vidach <user_id> <сумма> – пополнить баланс\n"
+            "/sdelkibo <user_id> – накрутить сделки"
         ),
-        "help_text": f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n/start – главное меню\n/help – эта справка",
+        "help_text": "{pin} <b>Доступные команды:</b>\n/start – главное меню\n/help – эта справка",
         "invalid_amount": "⚠️ Пожалуйста, введите корректное положительное число.",
         "invalid_description": "⚠️ Описание не может быть пустым. Попробуйте ещё раз.",
         "invalid_ton": "⚠️ Похоже, адрес слишком короткий. Попробуйте ещё раз.",
@@ -155,48 +161,48 @@ LANGUAGES = {
     "en": {
         "name": "English",
         "welcome": (
-            f"{EMOJI_TAGS['rocket']} <b>Welcome to ELF OTC – trusted P2P escrow</b>\n\n"
-            f"<b>Buy and sell anything – safely!</b>\n"
-            f"From Telegram gifts and NFT to tokens and fiat – deals are easy and risk-free.\n\n"
-            f"• Convenient wallet management\n"
-            f"• Referral system\n\n"
-            f"<b>How to use?</b>\n"
-            f"Check out the guide —\n"
-            f"<a href='{GUIDE_URL}'>Detailed guide</a>\n\n"
-            f"Select a section below:"
+            "{rocket} <b>Welcome to ELF OTC – trusted P2P escrow</b>\n\n"
+            "<b>Buy and sell anything – safely!</b>\n"
+            "From Telegram gifts and NFT to tokens and fiat – deals are easy and risk-free.\n\n"
+            "• Convenient wallet management\n"
+            "• Referral system\n\n"
+            "<b>How to use?</b>\n"
+            "Check out the guide —\n"
+            "<a href='{guide_url}'>Detailed guide</a>\n\n"
+            "Select a section below:"
         ),
         "main_menu": "Main menu",
         "wallet_menu": (
-            f"{EMOJI_TAGS['wallet']} <b>Your current wallet:</b>\n"
+            "{wallet} <b>Your current wallet:</b>\n"
             "Selected payment method: <b>{method}</b>\n\n"
             "You can change payment method below:"
         ),
-        "wallet_ton_add": f"{EMOJI_TAGS['pen']} <b>Adding TON wallet</b>\n\nPlease enter your TON address",
+        "wallet_ton_add": "{pen} <b>Adding TON wallet</b>\n\nPlease enter your TON address",
         "wallet_sbp_add": (
-            f"{EMOJI_TAGS['pen']} <b>Adding SBP</b>\n\n"
-            f"Please enter your phone number in format:\n<code>+7(XXX)XXX-XX-XX</code>"
+            "{pen} <b>Adding SBP</b>\n\n"
+            "Please enter your phone number in format:\n<code>+7(XXX)XXX-XX-XX</code>"
         ),
-        "wallet_sbp_bank": f"{EMOJI_TAGS['pen']} Please specify your bank!",
+        "wallet_sbp_bank": "{pen} Please specify your bank!",
         "wallet_card_add": (
-            f"{EMOJI_TAGS['pen']} <b>Adding bank card</b>\n\n"
-            f"Please enter your card number in format:\n<code>XXXX XXXX XXXX XXXX</code>"
+            "{pen} <b>Adding bank card</b>\n\n"
+            "Please enter your card number in format:\n<code>XXXX XXXX XXXX XXXX</code>"
         ),
-        "wallet_card_bank": f"{EMOJI_TAGS['pen']} Please specify your bank!",
-        "wallet_stars_updated": f"{EMOJI_TAGS['check']} <b>Settings updated:</b>\ncurrency for deals — STARS",
-        "wallet_ton_success": f"{EMOJI_TAGS['check']} TON wallet successfully added!",
-        "wallet_sbp_success": f"{EMOJI_TAGS['check']} Wallet successfully added/changed!",
-        "wallet_card_success": f"{EMOJI_TAGS['check']} Wallet successfully added/changed!",
-        "create_deal_title": f"{EMOJI_TAGS['money']} <b>Create deal</b>\n\nEnter amount in STARS:\n<code>2000</code>",
-        "create_deal_desc": f"{EMOJI_TAGS['pen']} <b>What are you offering in this deal?</b>\n\n<i>Example: 10 Caps and Pen...</i>",
+        "wallet_card_bank": "{pen} Please specify your bank!",
+        "wallet_stars_updated": "{check} <b>Settings updated:</b>\ncurrency for deals — STARS",
+        "wallet_ton_success": "{check} TON wallet successfully added!",
+        "wallet_sbp_success": "{check} Wallet successfully added/changed!",
+        "wallet_card_success": "{check} Wallet successfully added/changed!",
+        "create_deal_title": "{money} <b>Create deal</b>\n\nEnter amount in STARS:\n<code>2000</code>",
+        "create_deal_desc": "{pen} <b>What are you offering in this deal?</b>\n\n<i>Example: 10 Caps and Pen...</i>",
         "create_deal_success": (
-            f"{EMOJI_TAGS['check']} <b>Deal successfully created!</b>\n\n"
+            "{check} <b>Deal successfully created!</b>\n\n"
             "Amount: <b>{amount} STARS</b>\n\n"
             "<b>Description:</b>\n{description}\n\n"
             "Link for buyer:\n<code>{link}</code>\n\n"
             "<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttg</i>"
         ),
         "deal_info": (
-            f"{EMOJI_TAGS['money']} <b>Deal info</b>\n\n"
+            "{money} <b>Deal info</b>\n\n"
             "Amount: <b>{amount} STARS</b>\n"
             "Description: {description}\n\n"
             "Press button below to confirm the deal."
@@ -204,17 +210,23 @@ LANGUAGES = {
         "deal_confirmed": "✅ Deal confirmed and completed!",
         "deal_canceled": "❌ Deal canceled.",
         "deal_not_found": "❌ Deal not found or already inactive.",
-        "ref_title": f"{EMOJI_TAGS['link']} <b>Your referral link:</b>\n<code>{link}</code>\n\nReferrals: {refs}\nEarned from referrals: {earned} RUB\nYou get {percent}% of bot's commission from referrals.",
-        "lang_title": f"{EMOJI_TAGS['globe']} <b>Choose your language:</b>\n\nВыберите язык:",
+        "ref_title": (
+            "{link_emoji} <b>Your referral link:</b>\n"
+            "<code>{link}</code>\n\n"
+            "Referrals: {refs}\n"
+            "Earned from referrals: {earned} RUB\n"
+            "You get {percent}% of bot's commission from referrals."
+        ),
+        "lang_title": "{globe} <b>Choose your language:</b>\n\nВыберите язык:",
         "lang_changed": "🌐 Language changed to {lang}",
-        "support_title": f"{EMOJI_TAGS['phone']} <b>Support</b>\n\nTo contact us, fill out the form:\n<a href='{SUPPORT_URL}'>Click here</a>",
+        "support_title": "{phone} <b>Support</b>\n\nTo contact us, fill out the form:\n<a href='{support_url}'>Click here</a>",
         "back_to_menu": "↩️ Back to menu",
-        "btn_wallet": f"{SYMBOLS['wallet']} Add/change wallet",
-        "btn_create_deal": f"{SYMBOLS['money']} Create deal",
-        "btn_ref": f"{SYMBOLS['link']} Referral link",
-        "btn_lang": f"{SYMBOLS['globe']} Change language",
-        "btn_support": f"{SYMBOLS['phone']} Support",
-        "btn_admin": f"{SYMBOLS['star']} Admin panel",
+        "btn_wallet": "{wallet_symbol} Add/change wallet",
+        "btn_create_deal": "{money_symbol} Create deal",
+        "btn_ref": "{link_symbol} Referral link",
+        "btn_lang": "{globe_symbol} Change language",
+        "btn_support": "{phone_symbol} Support",
+        "btn_admin": "{star_symbol} Admin panel",
         "btn_ton": "➕ Add TON wallet",
         "btn_sbp": "➕ Add SBP",
         "btn_card_rf": "➕ Add bank card (RU)",
@@ -225,13 +237,13 @@ LANGUAGES = {
         "btn_cancel_deal": "❌ Cancel deal",
         "btn_back": "↩️ Back to menu",
         "admin_panel": (
-            f"{EMOJI_TAGS['star']} <b>Admin panel</b>\n\n"
-            f"/wrfas – list of commands\n"
-            f"/buyslnft &lt;ID&gt; – complete deal\n"
-            f"/vidach &lt;user_id&gt; &lt;amount&gt; – add balance\n"
-            f"/sdelkibo &lt;user_id&gt; – fake deals"
+            "{star} <b>Admin panel</b>\n\n"
+            "/wrfas – list of commands\n"
+            "/buyslnft <ID> – complete deal\n"
+            "/vidach <user_id> <amount> – add balance\n"
+            "/sdelkibo <user_id> – fake deals"
         ),
-        "help_text": f"{EMOJI_TAGS['pin']} <b>Available commands:</b>\n/start – main menu\n/help – this help",
+        "help_text": "{pin} <b>Available commands:</b>\n/start – main menu\n/help – this help",
         "invalid_amount": "⚠️ Please enter a valid positive number.",
         "invalid_description": "⚠️ Description cannot be empty. Try again.",
         "invalid_ton": "⚠️ Address seems too short. Try again.",
@@ -267,17 +279,53 @@ user_deals = {}
 deal_counter = 0
 temp_deal_data = {}
 wallets = {}
-user_lang = {}        # user_id -> 'ru' or 'en'
-referrals = {}        # user_id -> list of referred user_ids
-referral_earnings = {} # user_id -> total earned from referrals
+user_lang = {}
+referrals = {}
+referral_earnings = {}
 
 def get_lang(user_id: int) -> str:
     return user_lang.get(user_id, 'ru')
 
 def get_text(key: str, user_id: int, **kwargs) -> str:
     lang = get_lang(user_id)
-    text = LANGUAGES.get(lang, LANGUAGES['ru']).get(key, key)
-    return text.format(**kwargs) if kwargs else text
+    template = LANGUAGES.get(lang, LANGUAGES['ru']).get(key, key)
+    # Подставляем эмодзи и другие переменные
+    format_dict = {
+        'rocket': EMOJI_TAGS['rocket'],
+        'shield': EMOJI_TAGS['shield'],
+        'pin': EMOJI_TAGS['pin'],
+        'pen': EMOJI_TAGS['pen'],
+        'money': EMOJI_TAGS['money'],
+        'money2': EMOJI_TAGS['money2'],
+        'check': EMOJI_TAGS['check'],
+        'receipt': EMOJI_TAGS['receipt'],
+        'briefcase': EMOJI_TAGS['briefcase'],
+        'heart': EMOJI_TAGS['heart'],
+        'card': EMOJI_TAGS['card'],
+        'star': EMOJI_TAGS['star'],
+        'coin': EMOJI_TAGS['coin'],
+        'coin2': EMOJI_TAGS['coin2'],
+        'chart': EMOJI_TAGS['chart'],
+        'globe': EMOJI_TAGS['globe'],
+        'users': EMOJI_TAGS['users'],
+        'wallet': EMOJI_TAGS['wallet'],
+        'link_emoji': EMOJI_TAGS['link'],
+        'phone': EMOJI_TAGS['phone'],
+        'guide_url': GUIDE_URL,
+        'support_url': SUPPORT_URL,
+        'wallet_symbol': SYMBOLS['wallet'],
+        'money_symbol': SYMBOLS['money'],
+        'link_symbol': SYMBOLS['link'],
+        'globe_symbol': SYMBOLS['globe'],
+        'phone_symbol': SYMBOLS['phone'],
+        'star_symbol': SYMBOLS['star'],
+    }
+    format_dict.update(kwargs)
+    try:
+        return template.format(**format_dict)
+    except KeyError as e:
+        logger.error(f"Missing key in translation: {e}")
+        return template
 
 def get_wallet(user_id: int) -> dict:
     if user_id not in wallets:
@@ -330,7 +378,7 @@ def get_deal_by_code(code: str):
     return None
 
 # ============================================================
-# 8. ГЛАВНОЕ МЕНЮ (С ЛОКАЛИЗАЦИЕЙ)
+# 8. ГЛАВНОЕ МЕНЮ
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -345,17 +393,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(get_text("deal_not_found", user_id))
                 return
         elif code.startswith("ref_"):
-            # Реферальная ссылка: добавляем реферала
             referrer_id = int(code.split("_")[1])
             if referrer_id != user_id:
                 if user_id not in referrals.get(referrer_id, []):
                     referrals.setdefault(referrer_id, []).append(user_id)
-                    # Начисляем бонус (фиктивно 0.5 RUB)
                     referral_earnings[referrer_id] = referral_earnings.get(referrer_id, 0) + 0.5
                 await update.message.reply_text("✅ Вы успешно зарегистрированы по реферальной ссылке!")
             else:
                 await update.message.reply_text("ℹ️ Вы не можете пригласить самого себя.")
-            # После реферальной ссылки показываем главное меню
             await show_main_menu(update, context)
             return
 
@@ -363,7 +408,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    lang = get_lang(user_id)
     caption = get_text("welcome", user_id)
     keyboard = [
         [InlineKeyboardButton(get_text("btn_wallet", user_id), callback_data='wallet')],
@@ -394,9 +438,6 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup
         )
 
-# ============================================================
-# 9. ПОКАЗ СДЕЛКИ ПОКУПАТЕЛЮ
-# ============================================================
 async def show_deal_to_buyer(update: Update, context: ContextTypes.DEFAULT_TYPE, deal: dict):
     user_id = update.effective_user.id
     text = get_text("deal_info", user_id, amount=deal['amount'], description=deal['description'])
@@ -408,7 +449,7 @@ async def show_deal_to_buyer(update: Update, context: ContextTypes.DEFAULT_TYPE,
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
 
 # ============================================================
-# 10. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ (С ЛОКАЛИЗАЦИЕЙ)
+# 9. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ
 # ============================================================
 async def create_deal_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -477,7 +518,7 @@ async def cancel_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # ============================================================
-# 11. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ (С ЛОКАЛИЗАЦИЕЙ)
+# 10. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ
 # ============================================================
 async def wallet_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -514,7 +555,6 @@ async def wallet_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return WALLET_MAIN
 
-# Обработчики для каждого типа (с локализацией)
 async def wallet_ton_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -586,7 +626,6 @@ async def wallet_sbp_bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
         del context.user_data['sbp_phone']
     return await wallet_menu(update, context)
 
-# Аналогично для карт РФ и UA (код аналогичный, сокращаем для краткости)
 async def wallet_card_rf_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -629,7 +668,6 @@ async def wallet_card_rf_bank(update: Update, context: ContextTypes.DEFAULT_TYPE
         del context.user_data['card_rf']
     return await wallet_menu(update, context)
 
-# Карта UA
 async def wallet_card_ua_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -688,13 +726,12 @@ async def wallet_stars(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return await wallet_menu(update, context)
 
 # ============================================================
-# 12. РЕФЕРАЛЬНАЯ КНОПКА
+# 11. РЕФЕРАЛЬНАЯ КНОПКА
 # ============================================================
 async def ref_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
-    # Генерируем уникальный код для пользователя (если нет)
     ref_code = f"ref_{user_id}"
     link = f"https://t.me/{BOT_USERNAME}?start={ref_code}"
     refs = len(referrals.get(user_id, []))
@@ -717,7 +754,7 @@ async def ref_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ============================================================
-# 13. СМЕНА ЯЗЫКА
+# 12. СМЕНА ЯЗЫКА
 # ============================================================
 async def lang_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -743,7 +780,7 @@ async def set_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
-    lang = query.data.split('_')[1]  # lang_en или lang_ru
+    lang = query.data.split('_')[1]
     user_lang[user_id] = lang
     await query.message.delete()
     await context.bot.send_message(
@@ -751,11 +788,10 @@ async def set_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=get_text("lang_changed", user_id, lang=LANGUAGES[lang]["name"]),
         parse_mode='HTML'
     )
-    # Показываем главное меню на новом языке
     await show_main_menu(update, context)
 
 # ============================================================
-# 14. ТЕХПОДДЕРЖКА
+# 13. ТЕХПОДДЕРЖКА
 # ============================================================
 async def support_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -775,7 +811,7 @@ async def support_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ============================================================
-# 15. ОБРАБОТЧИК ГЛАВНЫХ КНОПОК
+# 14. ГЛАВНЫЙ ОБРАБОТЧИК КНОПОК
 # ============================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -835,7 +871,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Неизвестная команда.")
 
 # ============================================================
-# 16. ОБЫЧНЫЕ КОМАНДЫ
+# 15. ОБЫЧНЫЕ КОМАНДЫ
 # ============================================================
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -846,14 +882,14 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Используйте /start для главного меню.")
 
 # ============================================================
-# 17. АДМИН-КОМАНДЫ
+# 16. АДМИН-КОМАНДЫ
 # ============================================================
 async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
         return
-    text = get_text("admin_panel", user_id) + "\n\n" + f"<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
+    text = get_text("admin_panel", user_id) + f"\n\n<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
     msg = await update.message.reply_text(text, parse_mode='HTML')
     try:
         await context.bot.pin_chat_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
@@ -941,12 +977,11 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ============================================================
-# 18. ЗАПУСК
+# 17. ЗАПУСК
 # ============================================================
 def main():
     application = Application.builder().token(TOKEN).build()
 
-    # ConversationHandler для сделки
     conv_deal = ConversationHandler(
         entry_points=[CallbackQueryHandler(create_deal_start, pattern='^create_deal$')],
         states={
@@ -962,7 +997,6 @@ def main():
     )
     application.add_handler(conv_deal)
 
-    # ConversationHandler для кошелька
     conv_wallet = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(wallet_menu, pattern='^wallet$'),
@@ -997,7 +1031,6 @@ def main():
     )
     application.add_handler(conv_wallet)
 
-    # Остальные хендлеры
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("wrfas", wrfas))
