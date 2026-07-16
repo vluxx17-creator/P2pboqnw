@@ -1,7 +1,5 @@
 import logging
 import os
-import asyncio
-from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
@@ -50,16 +48,13 @@ EMOJI_TAGS = {
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ============================================================
-# 4. ХРАНИЛИЩА ДАННЫХ
+# 4. ХРАНИЛИЩА
 # ============================================================
 balances = {}
 deals = {}
 user_deals = {}
 deal_counter = 0
 
-# ============================================================
-# 5. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-# ============================================================
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
@@ -85,7 +80,7 @@ def create_deal(buyer: int, seller: int, amount: float, description: str = "") -
     return deal_id
 
 # ============================================================
-# 6. КОМАНДА /start
+# 5. КОМАНДА /start
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = (
@@ -118,7 +113,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ============================================================
-# 7. ОБРАБОТЧИК ИНЛАЙН-КНОПОК
+# 6. ОБРАБОТЧИК КНОПОК
 # ============================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -165,7 +160,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("Неизвестная команда.")
 
 # ============================================================
-# 8. ОБЫЧНЫЕ КОМАНДЫ
+# 7. КОМАНДЫ /help, /buy, /sell
 # ============================================================
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
@@ -217,7 +212,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"{EMOJI_TAGS['pin']} Используйте /start для главного меню.")
 
 # ============================================================
-# 9. АДМИН-КОМАНДЫ
+# 8. АДМИН-КОМАНДЫ
 # ============================================================
 async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -321,29 +316,12 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ============================================================
-# 10. FLASK-ПРИЛОЖЕНИЕ
-# ============================================================
-app = Flask(__name__)
-
-@app.route('/webhook', methods=['POST'])
-async def webhook():
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    await application.process_update(update)
-    return 'ok', 200
-
-@app.route('/')
-@app.route('/health')
-def health():
-    return "OK", 200
-
-# ============================================================
-# 11. ЗАПУСК БОТА (исправленный)
+# 9. ЗАПУСК БОТА (ЧЕРЕЗ WEBHOOK)
 # ============================================================
 if __name__ == '__main__':
-    # Создаём экземпляр Application
     application = Application.builder().token(TOKEN).build()
 
-    # Регистрируем все обработчики
+    # Регистрация обработчиков
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("wrfas", wrfas))
@@ -353,20 +331,19 @@ if __name__ == '__main__':
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    # Настраиваем порт и вебхук
+    # Настройка порта и вебхука
     port = int(os.environ.get("PORT", 10000))
     external_url = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 
-    async def setup_webhook():
-        if external_url:
-            webhook_url = f"https://{external_url}/webhook"
-            logger.info(f"Установка вебхука: {webhook_url}")
-            await application.bot.set_webhook(url=webhook_url)
-        else:
-            logger.warning("Переменная RENDER_EXTERNAL_HOSTNAME не найдена. Вебхук не установлен.")
-
-    # Устанавливаем вебхук
-    asyncio.run(setup_webhook())
-
-    # Запускаем Flask-сервер
-    app.run(host="0.0.0.0", port=port)
+    if external_url:
+        webhook_url = f"https://{external_url}/webhook"
+        logger.info(f"Запуск с вебхуком: {webhook_url}")
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path="webhook",
+            webhook_url=webhook_url
+        )
+    else:
+        logger.info("Запуск в режиме polling (локально)")
+        application.run_polling()
