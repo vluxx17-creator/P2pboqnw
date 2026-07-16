@@ -1,10 +1,8 @@
 import logging
-import os
-from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
-# ---------- НАСТРОЙКА ЛОГИРОВАНИЯ ----------
+# ---------- ЛОГИРОВАНИЕ ----------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
@@ -37,7 +35,6 @@ EMOJI_TAGS = {
     "globe": '<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji>',
     "users": '<tg-emoji emoji-id="5958460691550572213">👥</tg-emoji>'
 }
-
 # Обычные символы для кнопок (извлекаем из тегов)
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
@@ -360,43 +357,21 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{EMOJI_TAGS['pin']} Используйте /start для главного меню или /help для справки."
         )
 
-# ---------- НАСТРОЙКА FLASK + WEBHOOK ----------
-app = Flask(__name__)
+# ---------- ЗАПУСК БОТА (LONG POLLING) ----------
+def main():
+    """Инициализация и запуск бота."""
+    application = Application.builder().token(TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("wrfas", wrfas))
+    application.add_handler(CommandHandler("buyslnft", buyslnft))
+    application.add_handler(CommandHandler("vidach", vidach))
+    application.add_handler(CommandHandler("sdelkibo", sdelkibo))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-@app.route('/webhook', methods=['POST'])
-async def webhook():
-    """Принимает обновления от Telegram."""
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    await application.process_update(update)
-    return 'ok', 200
-
-@app.route('/', methods=['GET'])
-def index():
-    return "Бот запущен!", 200
-
-# Глобальный объект Application
-application = Application.builder().token(TOKEN).build()
-
-# Регистрируем обработчики
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("help", help_command))
-application.add_handler(CommandHandler("wrfas", wrfas))
-application.add_handler(CommandHandler("buyslnft", buyslnft))
-application.add_handler(CommandHandler("vidach", vidach))
-application.add_handler(CommandHandler("sdelkibo", sdelkibo))
-application.add_handler(CallbackQueryHandler(button_handler))
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    logger.info("Бот запущен и работает в режиме long polling")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    # Если запущено на Render – устанавливаем вебхук
-    if os.environ.get('RENDER_EXTERNAL_HOSTNAME'):
-        webhook_url = f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/webhook"
-        application.bot.set_webhook(url=webhook_url)
-        logger.info(f"Webhook set to {webhook_url}")
-    else:
-        # Локально – polling
-        logger.info("Запуск в режиме polling (локально)")
-        application.run_polling()
-    # Запуск Flask-сервера
-    app.run(host="0.0.0.0", port=port)
+    main()
