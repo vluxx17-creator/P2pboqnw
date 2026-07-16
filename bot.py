@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # ---------- КОНФИГУРАЦИЯ ----------
 TOKEN = "8578762350:AAFrd1SgZzm7IvELjcwrj6anShyzHeZlCws"
-ADMIN_IDS = [8400055743, 8297446667]          # владельцы / админы
+ADMIN_IDS = [8400055743, 8297446667]
 BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
 
@@ -35,16 +35,14 @@ EMOJI_TAGS = {
     "globe": '<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji>',
     "users": '<tg-emoji emoji-id="5958460691550572213">👥</tg-emoji>'
 }
-# Обычные символы для кнопок (извлекаем из тегов)
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
-# ---------- ХРАНИЛИЩА (В ПАМЯТИ) ----------
-balances = {}          # user_id -> float
-deals = {}             # deal_id -> {buyer, seller, amount, status, description}
-user_deals = {}        # user_id -> list of deal_ids
+# ---------- ХРАНИЛИЩА ----------
+balances = {}
+deals = {}
+user_deals = {}
 deal_counter = 0
 
-# ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
@@ -69,9 +67,8 @@ def create_deal(buyer: int, seller: int, amount: float, description: str = ""):
     user_deals.setdefault(seller, []).append(deal_id)
     return deal_id
 
-# ---------- ОБРАБОТЧИКИ КОМАНД ----------
+# ---------- ОБРАБОТЧИКИ ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Главное меню с баннером."""
     caption = (
         f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в OTC/P2P бот!</b>\n\n"
         f"Здесь вы можете безопасно покупать и продавать цифровые активы.\n"
@@ -87,7 +84,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_main_menu(update, context)
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отображает главное меню с инлайн-кнопками."""
     user_id = update.effective_user.id
     keyboard = [
         [InlineKeyboardButton(f"{SYMBOLS['money']} Купить", callback_data='buy')],
@@ -106,7 +102,6 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик нажатий на инлайн-кнопки."""
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
@@ -173,7 +168,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("Неизвестная команда.")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Справка по командам."""
     text = (
         f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n"
         f"/start - главное меню\n"
@@ -187,7 +181,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- АДМИН-КОМАНДЫ ----------
 async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Список админ-команд с закреплением сообщения."""
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
@@ -203,14 +196,12 @@ async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     msg = await update.message.reply_text(text, parse_mode='HTML')
-    # Закрепляем сообщение (если чат позволяет)
     try:
         await context.bot.pin_chat_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
     except Exception as e:
         logger.warning(f"Не удалось закрепить сообщение: {e}")
 
 async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Завершить сделку и начислить средства продавцу."""
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
@@ -245,7 +236,6 @@ async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Пополнить баланс пользователя."""
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
@@ -273,7 +263,6 @@ async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Накрутка фиктивных сделок для пользователя."""
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
@@ -289,10 +278,9 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ ID должен быть числом.")
         return
 
-    # Создаём 4 фиктивные сделки с разными описаниями
     descriptions = ["Покупка USDT", "Продажа BTC", "Обмен ETH", "Продажа USDT (фиктивная)"]
     for i, desc in enumerate(descriptions):
-        if i == 3:  # последняя – target_id продавец
+        if i == 3:
             buyer = ADMIN_IDS[0]
             seller = target_id
         else:
@@ -306,9 +294,7 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Используйте /my_deals или посмотрите в меню 'Мои сделки'."
     )
 
-# ---------- ОБРАБОТЧИК ТЕКСТА ДЛЯ /buy И /sell ----------
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обрабатывает команды /buy и /sell, создавая сделки."""
     text = update.message.text
     if text.startswith('/buy'):
         args = text.split()
@@ -322,7 +308,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         currency = args[2] if len(args) > 2 else "USD"
         buyer = update.effective_user.id
-        seller = ADMIN_IDS[0]  # продавец – первый админ
+        seller = ADMIN_IDS[0]
         deal_id = create_deal(buyer, seller, amount, description=f"Покупка {amount} USDT за {currency}")
         await update.message.reply_text(
             f"{EMOJI_TAGS['money2']} Заявка на покупку создана!\n"
@@ -357,9 +343,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{EMOJI_TAGS['pin']} Используйте /start для главного меню или /help для справки."
         )
 
-# ---------- ЗАПУСК БОТА (LONG POLLING) ----------
+# ---------- ЗАПУСК ----------
 def main():
-    """Инициализация и запуск бота."""
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
