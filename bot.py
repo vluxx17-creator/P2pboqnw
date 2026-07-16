@@ -16,7 +16,7 @@ BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
 GUIDE_URL = "https://telegra.ph/Podrobnyj-gajd-po-ispolzovaniyu-GiftElfRobot-04-25"
 
-# ---------- ПРЕМИУМ-ЭМОДЗИ (HTML-теги для текстов, символы для кнопок) ----------
+# ---------- ПРЕМИУМ-ЭМОДЗИ (HTML для текста, символы для кнопок) ----------
 EMOJI_TAGS = {
     "rocket": '<tg-emoji emoji-id="5195033767969839232">🚀</tg-emoji>',
     "shield": '<tg-emoji emoji-id="5197288647275071607">🛡</tg-emoji>',
@@ -35,17 +35,16 @@ EMOJI_TAGS = {
     "chart": '<tg-emoji emoji-id="5190806721286657692">📊</tg-emoji>',
     "globe": '<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji>',
     "users": '<tg-emoji emoji-id="5958460691550572213">👥</tg-emoji>',
-    "wallet": '<tg-emoji emoji-id="5445353829304387411">💳</tg-emoji>',   # карта для кошелька
-    "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>',    # нет точного – используем ✔️
-    "lang": '<tg-emoji emoji-id="5447410659077661506">🌐</tg-emoji>'
+    "wallet": '<tg-emoji emoji-id="5445353829304387411">💳</tg-emoji>',
+    "link": '<tg-emoji emoji-id="5206607081334906820">🔗</tg-emoji>'
 }
-# Обычные символы для кнопок (извлекаем из тегов)
+# Символы для кнопок (извлекаем из тегов)
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ---------- ХРАНИЛИЩА ----------
-balances = {}          # user_id -> float
-deals = {}             # deal_id -> {buyer, seller, amount, status, description}
-user_deals = {}        # user_id -> list of deal_ids
+balances = {}
+deals = {}
+user_deals = {}
 deal_counter = 0
 
 def is_admin(user_id: int) -> bool:
@@ -72,7 +71,7 @@ def create_deal(buyer: int, seller: int, amount: float, description: str = ""):
     user_deals.setdefault(seller, []).append(deal_id)
     return deal_id
 
-# ---------- ГЛАВНОЕ МЕНЮ (как на скриншоте) ----------
+# ---------- ГЛАВНОЕ МЕНЮ (ОДНО СООБЩЕНИЕ: ФОТО + ТЕКСТ + КНОПКИ) ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = (
         f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
@@ -85,31 +84,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"<a href='{GUIDE_URL}'>Подробный гайд по использованию</a>\n\n"
         f"Выберите нужный раздел ниже:"
     )
+    keyboard = [
+        [InlineKeyboardButton(f"{SYMBOLS['wallet']} Добавить/изменить кошелёк", callback_data='wallet')],
+        [InlineKeyboardButton(f"{SYMBOLS['money']} Создать сделку", callback_data='create_deal')],
+        [InlineKeyboardButton(f"{SYMBOLS['link']} Реферальная ссылка", callback_data='ref')],
+        [InlineKeyboardButton(f"{SYMBOLS['globe']} Сменить язык", callback_data='lang')],
+        [InlineKeyboardButton(f"{SYMBOLS['heart']} Поддержка", callback_data='support')],
+    ]
+    # Если админ – добавим кнопку админ-панели (скрыта от обычных)
+    if is_admin(update.effective_user.id):
+        keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=BANNER_URL,
         caption=caption,
         parse_mode='HTML',
-        disable_web_page_preview=True
-    )
-    await show_main_menu(update, context)
-
-async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton(f"{SYMBOLS['wallet']} Добавить/изменить кошелёк", callback_data='wallet')],
-        [InlineKeyboardButton(f"{SYMBOLS['money']} Создать сделку", callback_data='create_deal')],
-        [InlineKeyboardButton(f"{SYMBOLS['link']} Реферальная ссылка", callback_data='ref')],
-        [InlineKeyboardButton(f"{SYMBOLS['lang']} Сменить язык", callback_data='lang')],
-        [InlineKeyboardButton(f"{SYMBOLS['heart']} Поддержка", callback_data='support')],
-    ]
-    # Для админов – дополнительная кнопка (можно скрыть)
-    if is_admin(update.effective_user.id):
-        keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        f"{EMOJI_TAGS['globe']} <b>Главное меню</b>",
         reply_markup=reply_markup,
-        parse_mode='HTML'
+        disable_web_page_preview=True
     )
 
 # ---------- ОБРАБОТЧИК ИНЛАЙН-КНОПОК ----------
@@ -146,7 +139,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, parse_mode='HTML')
     elif data == 'lang':
         text = (
-            f"{EMOJI_TAGS['lang']} <b>Смена языка</b>\n\n"
+            f"{EMOJI_TAGS['globe']} <b>Смена языка</b>\n\n"
             f"Доступные языки: Русский, English.\n"
             f"Пока доступен только русский."
         )
