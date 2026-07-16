@@ -310,10 +310,12 @@ def load_data():
         admin_logs = []
 
 def save_admins():
+    global admin_data
     with open(ADMINS_FILE, 'w') as f:
         json.dump(admin_data, f)
 
 def save_logs():
+    global admin_logs
     if len(admin_logs) > 1000:
         admin_logs = admin_logs[-1000:]
     with open(LOGS_FILE, 'w') as f:
@@ -1193,7 +1195,7 @@ def main():
         },
         fallbacks=[
             CommandHandler('cancel', cancel_dialog),
-            CommandHandler('start', start),  # <-- добавлено
+            CommandHandler('start', start),
             CallbackQueryHandler(cancel_dialog, pattern='^cancel_dialog$'),
             CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
         ],
@@ -1230,7 +1232,7 @@ def main():
         },
         fallbacks=[
             CommandHandler('cancel', cancel_dialog),
-            CommandHandler('start', start),  # <-- добавлено
+            CommandHandler('start', start),
             CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
         ],
         allow_reentry=True,
