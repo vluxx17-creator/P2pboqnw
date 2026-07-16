@@ -277,8 +277,7 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         amount = round(10 + (hash(desc + str(i)) % 100), 2)
         create_deal(buyer, seller, amount, description=desc)
     await update.message.reply_text(
-        f"{EMOJI_TAGS['briefcase']} Для пользователя {target_id} создано 4 фиктивные сделки.\n"
-        f"Используйте /my_deals или меню 'Мои сделки' (если добавите)."
+        f"{EMOJI_TAGS['briefcase']} Для пользователя {target_id} создано 4 фиктивные сделки."
     )
 
 # ---------- ОБРАБОТЧИК ТЕКСТА (/buy, /sell) ----------
