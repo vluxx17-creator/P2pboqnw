@@ -3,8 +3,7 @@ import os
 import json
 import uuid
 import time
-import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -26,17 +25,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================================
-# 2. КОНФИГУРАЦИЯ БОТА
+# 2. КОНФИГУРАЦИЯ
 # ============================================================
 TOKEN = "8578762350:AAFrd1SgZzm7IvELjcwrj6anShyzHeZlCws"
-ADMIN_IDS = [8400055743, 8297446667]  # владельцы
+ADMIN_IDS = [8400055743, 8297446667]
 BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
 GUIDE_URL = "https://telegra.ph/Podrobnyj-gajd-po-ispolzovaniyu-GiftElfRobot-04-25"
 BOT_USERNAME = "GiftElfiliRobot"
 REFERRAL_PERCENT = 20
-
-# Файлы для хранения данных
 ADMINS_FILE = "admins.json"
 LOGS_FILE = "bot_logs.json"
 
@@ -68,7 +65,7 @@ EMOJI_TAGS = {
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ============================================================
-# 4. ЛОКАЛИЗАЦИЯ (без f-строк)
+# 4. ЛОКАЛИЗАЦИЯ (с обновлёнными текстами для способа оплаты)
 # ============================================================
 LANGUAGES = {
     "ru": {
@@ -105,11 +102,11 @@ LANGUAGES = {
         "wallet_ton_success": "{check} TON-кошелек успешно добавлен!",
         "wallet_sbp_success": "{check} Кошелек успешно добавлен/изменен!",
         "wallet_card_success": "{check} Кошелек успешно добавлен/изменен!",
-        "create_deal_title": "{money} <b>Создание сделки</b>\n\nВведите сумму STARS в формате:\n<code>2000</code>",
+        "create_deal_title": "{money} <b>Создание сделки</b>\n\nВведите сумму в <b>{method}</b>:\n<code>2000</code>",
         "create_deal_desc": "{pen} <b>Укажите, что вы предлагаете в этой сделке:</b>\n\n<i>Пример: 10 Кепок и Пене...</i>",
         "create_deal_success": (
             "{check} <b>Сделка успешно создана!</b>\n\n"
-            "Сумма: <b>{amount} STARS</b>\n\n"
+            "Сумма: <b>{amount} {method}</b>\n\n"
             "<b>Описание:</b>\n{description}\n\n"
             "Ссылка для покупателя:\n<code>{link}</code>\n\n"
             "<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttg</i>"
@@ -199,11 +196,11 @@ LANGUAGES = {
         "wallet_ton_success": "{check} TON wallet successfully added!",
         "wallet_sbp_success": "{check} Wallet successfully added/changed!",
         "wallet_card_success": "{check} Wallet successfully added/changed!",
-        "create_deal_title": "{money} <b>Create deal</b>\n\nEnter amount in STARS:\n<code>2000</code>",
+        "create_deal_title": "{money} <b>Create deal</b>\n\nEnter amount in <b>{method}</b>:\n<code>2000</code>",
         "create_deal_desc": "{pen} <b>What are you offering in this deal?</b>\n\n<i>Example: 10 Caps and Pen...</i>",
         "create_deal_success": (
             "{check} <b>Deal successfully created!</b>\n\n"
-            "Amount: <b>{amount} STARS</b>\n\n"
+            "Amount: <b>{amount} {method}</b>\n\n"
             "<b>Description:</b>\n{description}\n\n"
             "Link for buyer:\n<code>{link}</code>\n\n"
             "<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttg</i>"
@@ -279,7 +276,7 @@ AMOUNT, DESCRIPTION = range(2)
 ) = range(2, 12)
 
 # ============================================================
-# 6. ХРАНИЛИЩА
+# 6. ХРАНИЛИЩА И ЗАГРУЗКА ДАННЫХ
 # ============================================================
 balances = {}
 deals = {}
@@ -290,10 +287,8 @@ wallets = {}
 user_lang = {}
 referrals = {}
 referral_earnings = {}
-
-# Админ-данные: {user_id: {'expires': timestamp or None, 'added_by': user_id, 'added_at': timestamp}}
 admin_data = {}
-admin_logs = []  # список логов (каждый лог - dict)
+admin_logs = []
 
 def load_data():
     global admin_data, admin_logs
@@ -319,14 +314,12 @@ def save_admins():
         json.dump(admin_data, f)
 
 def save_logs():
-    # Оставляем только последние 1000 записей
     if len(admin_logs) > 1000:
         admin_logs = admin_logs[-1000:]
     with open(LOGS_FILE, 'w') as f:
         json.dump(admin_logs, f)
 
 def log_action(user_id, username, action, details=""):
-    """Запись действия в логи"""
     entry = {
         "timestamp": datetime.now().isoformat(),
         "user_id": user_id,
@@ -336,38 +329,6 @@ def log_action(user_id, username, action, details=""):
     }
     admin_logs.append(entry)
     save_logs()
-
-def get_user_identifier(update: Update) -> tuple:
-    """Возвращает (user_id, username) с blur для username"""
-    user = update.effective_user
-    uid = user.id
-    uname = user.username if user.username else "no_username"
-    # blur: показываем только первую и последнюю букву
-    if len(uname) > 3:
-        uname_blur = uname[0] + "..." + uname[-1]
-    else:
-        uname_blur = uname
-    return uid, uname_blur
-
-def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь админом (владельцем или добавленным)"""
-    if user_id in ADMIN_IDS:
-        return True
-    # Проверяем временных админов
-    if user_id in admin_data:
-        expires = admin_data[user_id].get('expires')
-        if expires is None:
-            return True  # бессрочный
-        if expires > time.time():
-            return True
-        else:
-            # Удаляем истекшего админа
-            del admin_data[user_id]
-            save_admins()
-    return False
-
-def is_owner(user_id: int) -> bool:
-    return user_id in ADMIN_IDS
 
 # ============================================================
 # 7. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -426,8 +387,34 @@ def get_wallet(user_id: int) -> dict:
         }
     return wallets[user_id]
 
-def generate_ref_code() -> str:
-    return uuid.uuid4().hex[:12]
+def get_payment_method_name(user_id: int) -> str:
+    wallet = get_wallet(user_id)
+    method = wallet.get("payment_method", "stars")
+    names = {
+        "stars": "STARS",
+        "ton": "TON",
+        "sbp": "СБП",
+        "card_rf": "Card (RF)",
+        "card_ua": "Card (UA)"
+    }
+    return names.get(method, "STARS")
+
+def is_admin(user_id: int) -> bool:
+    if user_id in ADMIN_IDS:
+        return True
+    if user_id in admin_data:
+        expires = admin_data[user_id].get('expires')
+        if expires is None:
+            return True
+        if expires > time.time():
+            return True
+        else:
+            del admin_data[user_id]
+            save_admins()
+    return False
+
+def is_owner(user_id: int) -> bool:
+    return user_id in ADMIN_IDS
 
 def create_deal(creator_id: int, amount: float, description: str) -> dict:
     global deal_counter
@@ -445,7 +432,7 @@ def create_deal(creator_id: int, amount: float, description: str) -> dict:
     }
     deals[deal_id] = deal
     user_deals.setdefault(creator_id, []).append(deal_id)
-    log_action(creator_id, f"user_{creator_id}", "create_deal", f"Создана сделка #{deal_id} на {amount} STARS")
+    log_action(creator_id, f"user_{creator_id}", "create_deal", f"Создана сделка #{deal_id} на {amount} {get_payment_method_name(creator_id)}")
     return deal
 
 def get_deal_by_code(code: str):
@@ -455,7 +442,7 @@ def get_deal_by_code(code: str):
     return None
 
 # ============================================================
-# 8. ГЛАВНОЕ МЕНЮ (БЕЗ КНОПКИ АДМИНА)
+# 8. ГЛАВНОЕ МЕНЮ И ОБРАБОТЧИКИ (без кнопки админа)
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -483,7 +470,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("ℹ️ Вы не можете пригласить самого себя.")
             await show_main_menu(update, context)
             return
-
     await show_main_menu(update, context)
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -496,7 +482,6 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton(get_text("btn_lang", user_id), callback_data='lang')],
         [InlineKeyboardButton(get_text("btn_support", user_id), callback_data='support')],
     ]
-    # Кнопка админа УДАЛЕНА
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     if update.callback_query:
@@ -528,20 +513,21 @@ async def show_deal_to_buyer(update: Update, context: ContextTypes.DEFAULT_TYPE,
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
 
 # ============================================================
-# 9. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ
+# 9. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ (с учётом способа оплаты)
 # ============================================================
 async def create_deal_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
     username = update.effective_user.username or "no_username"
+    method = get_payment_method_name(user_id)
     await query.message.delete()
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=get_text("create_deal_title", user_id),
+        text=get_text("create_deal_title", user_id, method=method),
         parse_mode='HTML'
     )
-    log_action(user_id, username, "create_deal_start", "Начало создания сделки")
+    log_action(user_id, username, "create_deal_start", f"Начало создания сделки (оплата: {method})")
     return AMOUNT
 
 async def create_deal_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -575,10 +561,12 @@ async def create_deal_description(update: Update, context: ContextTypes.DEFAULT_
         return ConversationHandler.END
 
     amount = data["amount"]
+    method = get_payment_method_name(user_id)
     deal = create_deal(user_id, amount, description)
 
     text = get_text("create_deal_success", user_id,
                     amount=int(amount),
+                    method=method,
                     description=description,
                     link=deal['buyer_link'])
     keyboard = [
@@ -588,7 +576,7 @@ async def create_deal_description(update: Update, context: ContextTypes.DEFAULT_
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
 
-    log_action(user_id, username, "create_deal_finish", f"Создана сделка #{deal['id']}: {description}")
+    log_action(user_id, username, "create_deal_finish", f"Создана сделка #{deal['id']} на {amount} {method}")
     if user_id in temp_deal_data:
         del temp_deal_data[user_id]
 
@@ -605,16 +593,344 @@ async def cancel_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 # ============================================================
-# 10. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ (без изменений)
+# 10. ДИАЛОГ УПРАВЛЕНИЯ КОШЕЛЬКАМИ (без изменений, но логируем)
 # ============================================================
-# ... (весь код кошелька остаётся без изменений, он слишком длинный, но мы его сохраняем)
-# Для краткости я пропущу его в этом ответе, но в финальном файле он будет.
+async def wallet_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    wallet = get_wallet(user_id)
+    method_names = {"stars": "STARS", "ton": "TON", "sbp": "СБП", "card_rf": "Card (RF)", "card_ua": "Card (UA)"}
+    current = method_names.get(wallet["payment_method"], "STARS")
+    text = get_text("wallet_menu", user_id, method=current)
+    keyboard = [
+        [InlineKeyboardButton(get_text("btn_ton", user_id), callback_data="wallet_ton")],
+        [InlineKeyboardButton(get_text("btn_sbp", user_id), callback_data="wallet_sbp")],
+        [InlineKeyboardButton(get_text("btn_card_rf", user_id), callback_data="wallet_card_rf")],
+        [InlineKeyboardButton(get_text("btn_card_ua", user_id), callback_data="wallet_card_ua")],
+        [InlineKeyboardButton(get_text("btn_stars", user_id), callback_data="wallet_stars")],
+        [InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+    return WALLET_MAIN
+
+async def wallet_ton_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=get_text("wallet_ton_add", user_id),
+        parse_mode='HTML'
+    )
+    return WALLET_TON_INPUT
+
+async def wallet_ton_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    ton_address = update.message.text.strip()
+    if len(ton_address) < 10:
+        await update.message.reply_text(get_text("invalid_ton", user_id))
+        return WALLET_TON_INPUT
+    wallet = get_wallet(user_id)
+    wallet["ton"] = ton_address
+    wallet["payment_method"] = "ton"
+    log_action(user_id, update.effective_user.username or "no_username", "wallet_ton", f"Добавлен TON кошелёк: {ton_address}")
+    await update.message.reply_text(
+        f"{get_text('wallet_ton_success', user_id)}\n\n<b>Address:</b>\n<code>{ton_address}</code>",
+        parse_mode='HTML'
+    )
+    return await wallet_menu(update, context)
+
+async def wallet_sbp_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=get_text("wallet_sbp_add", user_id),
+        parse_mode='HTML'
+    )
+    return WALLET_SBP_PHONE
+
+async def wallet_sbp_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    phone = update.message.text.strip()
+    if not phone.startswith('+') or len(phone) < 10:
+        await update.message.reply_text(get_text("invalid_phone", user_id))
+        return WALLET_SBP_PHONE
+    context.user_data['sbp_phone'] = phone
+    await update.message.reply_text(get_text("wallet_sbp_bank", user_id), parse_mode='HTML')
+    return WALLET_SBP_BANK
+
+async def wallet_sbp_bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    bank = update.message.text.strip()
+    if not bank:
+        await update.message.reply_text(get_text("invalid_bank", user_id))
+        return WALLET_SBP_BANK
+    wallet = get_wallet(user_id)
+    wallet["sbp"] = {"phone": context.user_data.get('sbp_phone'), "bank": bank}
+    wallet["payment_method"] = "sbp"
+    log_action(user_id, update.effective_user.username or "no_username", "wallet_sbp", f"Добавлен СБП: {context.user_data['sbp_phone']} {bank}")
+    await update.message.reply_text(
+        f"{get_text('wallet_sbp_success', user_id)}\n\n<b>SBP:</b>\nPhone: {context.user_data['sbp_phone']}\nBank: {bank}",
+        parse_mode='HTML'
+    )
+    if 'sbp_phone' in context.user_data:
+        del context.user_data['sbp_phone']
+    return await wallet_menu(update, context)
+
+async def wallet_card_rf_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=get_text("wallet_card_add", user_id),
+        parse_mode='HTML'
+    )
+    return WALLET_CARD_RF_INPUT
+
+async def wallet_card_rf_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    card = update.message.text.strip().replace(' ', '')
+    if len(card) != 16 or not card.isdigit():
+        await update.message.reply_text(get_text("invalid_card", user_id))
+        return WALLET_CARD_RF_INPUT
+    context.user_data['card_rf'] = card
+    await update.message.reply_text(get_text("wallet_card_bank", user_id), parse_mode='HTML')
+    return WALLET_CARD_RF_BANK
+
+async def wallet_card_rf_bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    bank = update.message.text.strip()
+    if not bank:
+        await update.message.reply_text(get_text("invalid_bank", user_id))
+        return WALLET_CARD_RF_BANK
+    wallet = get_wallet(user_id)
+    wallet["card_rf"] = {"card": context.user_data['card_rf'], "bank": bank}
+    wallet["payment_method"] = "card_rf"
+    log_action(user_id, update.effective_user.username or "no_username", "wallet_card_rf", f"Добавлена карта РФ: {context.user_data['card_rf']} {bank}")
+    await update.message.reply_text(
+        f"{get_text('wallet_card_success', user_id)}\n\n<b>Card (RF):</b>\nNumber: {context.user_data['card_rf']}\nBank: {bank}",
+        parse_mode='HTML'
+    )
+    if 'card_rf' in context.user_data:
+        del context.user_data['card_rf']
+    return await wallet_menu(update, context)
+
+async def wallet_card_ua_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=get_text("wallet_card_add", user_id),
+        parse_mode='HTML'
+    )
+    return WALLET_CARD_UA_INPUT
+
+async def wallet_card_ua_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    card = update.message.text.strip().replace(' ', '')
+    if len(card) != 16 or not card.isdigit():
+        await update.message.reply_text(get_text("invalid_card", user_id))
+        return WALLET_CARD_UA_INPUT
+    context.user_data['card_ua'] = card
+    await update.message.reply_text(get_text("wallet_card_bank", user_id), parse_mode='HTML')
+    return WALLET_CARD_UA_BANK
+
+async def wallet_card_ua_bank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    bank = update.message.text.strip()
+    if not bank:
+        await update.message.reply_text(get_text("invalid_bank", user_id))
+        return WALLET_CARD_UA_BANK
+    wallet = get_wallet(user_id)
+    wallet["card_ua"] = {"card": context.user_data['card_ua'], "bank": bank}
+    wallet["payment_method"] = "card_ua"
+    log_action(user_id, update.effective_user.username or "no_username", "wallet_card_ua", f"Добавлена карта UA: {context.user_data['card_ua']} {bank}")
+    await update.message.reply_text(
+        f"{get_text('wallet_card_success', user_id)}\n\n<b>Card (UA):</b>\nNumber: {context.user_data['card_ua']}\nBank: {bank}",
+        parse_mode='HTML'
+    )
+    if 'card_ua' in context.user_data:
+        del context.user_data['card_ua']
+    return await wallet_menu(update, context)
+
+async def wallet_stars(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    wallet = get_wallet(user_id)
+    wallet["payment_method"] = "stars"
+    log_action(user_id, update.effective_user.username or "no_username", "wallet_stars", "Выбрана оплата в STARS")
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=get_text("wallet_stars_updated", user_id),
+        parse_mode='HTML'
+    )
+    return await wallet_menu(update, context)
 
 # ============================================================
-# 11. АДМИН-КОМАНДЫ (НОВЫЕ)
+# 11. РЕФЕРАЛКА, ЯЗЫК, ПОДДЕРЖКА
+# ============================================================
+async def ref_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    ref_code = f"ref_{user_id}"
+    link = f"https://t.me/{BOT_USERNAME}?start={ref_code}"
+    refs = len(referrals.get(user_id, []))
+    earned = referral_earnings.get(user_id, 0.0)
+    text = get_text("ref_title", user_id,
+                    link=link,
+                    refs=refs,
+                    earned=earned,
+                    percent=REFERRAL_PERCENT)
+    keyboard = [[InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+
+async def lang_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    text = get_text("lang_title", user_id)
+    keyboard = [
+        [InlineKeyboardButton("English", callback_data="lang_en")],
+        [InlineKeyboardButton("Русский", callback_data="lang_ru")],
+        [InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+
+async def set_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    lang = query.data.split('_')[1]
+    user_lang[user_id] = lang
+    log_action(user_id, update.effective_user.username or "no_username", "set_lang", f"Язык изменён на {lang}")
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=get_text("lang_changed", user_id, lang=LANGUAGES[lang]["name"]),
+        parse_mode='HTML'
+    )
+    await show_main_menu(update, context)
+
+async def support_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    text = get_text("support_title", user_id)
+    keyboard = [[InlineKeyboardButton(get_text("btn_back", user_id), callback_data="back_to_menu")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML',
+        disable_web_page_preview=True,
+        reply_markup=reply_markup
+    )
+
+# ============================================================
+# 12. ГЛАВНЫЙ ОБРАБОТЧИК КНОПОК
+# ============================================================
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = update.effective_user.id
+    data = query.data
+
+    if data == 'create_deal':
+        await create_deal_start(update, context)
+        return
+    elif data == 'wallet':
+        await wallet_menu(update, context)
+        return
+    elif data == 'ref':
+        await ref_button(update, context)
+        return
+    elif data == 'lang':
+        await lang_menu(update, context)
+        return
+    elif data == 'support':
+        await support_button(update, context)
+        return
+    elif data.startswith('lang_'):
+        await set_lang(update, context)
+        return
+
+    await query.message.delete()
+
+    if data == 'back_to_menu':
+        await show_main_menu(update, context)
+    elif data.startswith('cancel_deal_'):
+        deal_id = int(data.split('_')[2])
+        deal = deals.get(deal_id)
+        if deal and deal['status'] == 'active':
+            deal['status'] = 'canceled'
+            if deal['creator'] in user_deals:
+                user_deals[deal['creator']] = [d for d in user_deals[deal['creator']] if d != deal_id]
+            log_action(user_id, update.effective_user.username or "no_username", "cancel_deal", f"Отмена сделки #{deal_id}")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_canceled", user_id))
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_not_found", user_id))
+        await show_main_menu(update, context)
+    elif data.startswith('confirm_deal_'):
+        deal_id = int(data.split('_')[2])
+        deal = deals.get(deal_id)
+        if deal and deal['status'] == 'active':
+            deal['status'] = 'completed'
+            log_action(user_id, update.effective_user.username or "no_username", "confirm_deal", f"Подтверждение сделки #{deal_id}")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_confirmed", user_id))
+        else:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=get_text("deal_not_found", user_id))
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Неизвестная команда.")
+
+# ============================================================
+# 13. ОБЫЧНЫЕ КОМАНДЫ
+# ============================================================
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    await update.message.reply_text(get_text("help_text", user_id), parse_mode='HTML')
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    await update.message.reply_text("Используйте /start для главного меню.")
+
+# ============================================================
+# 14. АДМИН-КОМАНДЫ
 # ============================================================
 async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показывает список админ-команд (доступно админам и владельцам)"""
     user_id = update.effective_user.id
     if not is_admin(user_id):
         await update.message.reply_text("⛔ Нет доступа.")
@@ -630,7 +946,6 @@ async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode='HTML')
 
 async def setadminis(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Управление админами (только для владельцев)"""
     user_id = update.effective_user.id
     if not is_owner(user_id):
         await update.message.reply_text("⛔ Эта команда доступна только владельцам бота.")
@@ -664,7 +979,6 @@ async def setadminis(update: Update, context: ContextTypes.DEFAULT_TYPE):
         expires = None
         if len(args) >= 3:
             time_str = args[2]
-            # Парсим время: 1d, 2h, 30m, 1w, 1M
             unit = time_str[-1]
             try:
                 value = int(time_str[:-1])
@@ -680,7 +994,7 @@ async def setadminis(update: Update, context: ContextTypes.DEFAULT_TYPE):
             elif unit == 'w':
                 expires = time.time() + value * 604800
             elif unit == 'M':
-                expires = time.time() + value * 2592000  # ~30 дней
+                expires = time.time() + value * 2592000
             else:
                 await update.message.reply_text("⚠️ Неизвестная единица времени. Используйте: d, h, m, w, M")
                 return
@@ -743,7 +1057,6 @@ async def setadminis(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not admin_logs:
             await update.message.reply_text("📋 Логов пока нет.")
             return
-        # Берём последние count записей
         logs = admin_logs[-count:]
         text = "📋 <b>Последние логи:</b>\n\n"
         for entry in reversed(logs):
@@ -762,7 +1075,6 @@ async def setadminis(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not admin_logs:
             await update.message.reply_text("📋 Логов нет для экспорта.")
             return
-        # Создаём файл с логами
         filename = f"logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(filename, 'w') as f:
             json.dump(admin_logs, f, indent=2)
@@ -772,23 +1084,161 @@ async def setadminis(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Неизвестная подкоманда. Используйте add, remove, list, logs, export.")
 
-# ============================================================
-# 12. ОСТАЛЬНЫЕ АДМИН-КОМАНДЫ (buyslnft, vidach, sdelkibo) - без изменений
-# ============================================================
-# ... они уже есть в коде, оставляем как есть.
+async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    args = context.args
+    if not args:
+        await update.message.reply_text("⚠️ Укажите ID сделки: /buyslnft <ID>")
+        return
+    try:
+        deal_id = int(args[0])
+    except ValueError:
+        await update.message.reply_text("⚠️ ID должен быть числом.")
+        return
+    deal = deals.get(deal_id)
+    if not deal:
+        await update.message.reply_text(f"❌ Сделка с ID {deal_id} не найдена.")
+        return
+    if deal['status'] == 'completed':
+        await update.message.reply_text(f"ℹ️ Сделка {deal_id} уже завершена.")
+        return
+    seller_id = deal['creator']
+    amount = deal['amount']
+    add_balance(seller_id, amount)
+    deal['status'] = 'completed'
+    log_action(user_id, update.effective_user.username or "no_username", "buyslnft", f"Завершена сделка #{deal_id}, продавец {seller_id} получил {amount} STARS")
+    await update.message.reply_text(
+        f"{EMOJI_TAGS['check']} Сделка {deal_id} завершена.\n"
+        f"Продавцу (ID: {seller_id}) начислено {amount} STARS."
+    )
+
+async def vidach(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    args = context.args
+    if len(args) < 2:
+        await update.message.reply_text("⚠️ Использование: /vidach <user_id> <сумма>")
+        return
+    try:
+        target_id = int(args[0])
+        amount = float(args[1])
+    except ValueError:
+        await update.message.reply_text("⚠️ Некорректный формат.")
+        return
+    if amount <= 0:
+        await update.message.reply_text("⚠️ Сумма должна быть положительной.")
+        return
+    add_balance(target_id, amount)
+    log_action(user_id, update.effective_user.username or "no_username", "vidach", f"Пополнен баланс {target_id} на {amount} STARS")
+    await update.message.reply_text(
+        f"{EMOJI_TAGS['money']} Баланс пользователя {target_id} пополнен на {amount:.2f} STARS.\n"
+        f"Текущий баланс: {get_balance(target_id):.2f} STARS."
+    )
+
+async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not is_admin(user_id):
+        await update.message.reply_text("⛔ Нет доступа.")
+        return
+    args = context.args
+    if not args:
+        await update.message.reply_text("⚠️ Укажите ID пользователя: /sdelkibo <user_id>")
+        return
+    try:
+        target_id = int(args[0])
+    except ValueError:
+        await update.message.reply_text("⚠️ ID должен быть числом.")
+        return
+    descriptions = ["Покупка NFT", "Продажа NFT", "Обмен токенов", "Продажа NFT (фиктивная)"]
+    for i, desc in enumerate(descriptions):
+        if i % 2 == 0:
+            creator = target_id
+        else:
+            creator = ADMIN_IDS[0]
+        amount = round(10 + (hash(desc + str(i)) % 100), 2)
+        create_deal(creator, amount, description=desc)
+    log_action(user_id, update.effective_user.username or "no_username", "sdelkibo", f"Создано 4 фиктивные сделки для {target_id}")
+    await update.message.reply_text(
+        f"{EMOJI_TAGS['briefcase']} Для пользователя {target_id} создано 4 фиктивные сделки."
+    )
 
 # ============================================================
-# 13. ЗАПУСК
+# 15. ЗАПУСК БОТА
 # ============================================================
 def main():
     load_data()
     application = Application.builder().token(TOKEN).build()
 
-    # ... (регистрация хендлеров, ConversationHandler)
-    # Полный код регистрации будет в финальном файле.
+    # ConversationHandler для создания сделки
+    conv_deal = ConversationHandler(
+        entry_points=[CallbackQueryHandler(create_deal_start, pattern='^create_deal$')],
+        states={
+            AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, create_deal_amount)],
+            DESCRIPTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, create_deal_description)],
+        },
+        fallbacks=[
+            CommandHandler('cancel', cancel_dialog),
+            CallbackQueryHandler(cancel_dialog, pattern='^cancel_dialog$'),
+            CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
+        ],
+        allow_reentry=True,
+    )
+    application.add_handler(conv_deal)
+
+    # ConversationHandler для кошелька
+    conv_wallet = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(wallet_menu, pattern='^wallet$'),
+            CallbackQueryHandler(wallet_ton_start, pattern='^wallet_ton$'),
+            CallbackQueryHandler(wallet_sbp_start, pattern='^wallet_sbp$'),
+            CallbackQueryHandler(wallet_card_rf_start, pattern='^wallet_card_rf$'),
+            CallbackQueryHandler(wallet_card_ua_start, pattern='^wallet_card_ua$'),
+            CallbackQueryHandler(wallet_stars, pattern='^wallet_stars$'),
+        ],
+        states={
+            WALLET_MAIN: [
+                CallbackQueryHandler(wallet_ton_start, pattern='^wallet_ton$'),
+                CallbackQueryHandler(wallet_sbp_start, pattern='^wallet_sbp$'),
+                CallbackQueryHandler(wallet_card_rf_start, pattern='^wallet_card_rf$'),
+                CallbackQueryHandler(wallet_card_ua_start, pattern='^wallet_card_ua$'),
+                CallbackQueryHandler(wallet_stars, pattern='^wallet_stars$'),
+                CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
+            ],
+            WALLET_TON_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_ton_input)],
+            WALLET_SBP_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_sbp_phone)],
+            WALLET_SBP_BANK: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_sbp_bank)],
+            WALLET_CARD_RF_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_card_rf_input)],
+            WALLET_CARD_RF_BANK: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_card_rf_bank)],
+            WALLET_CARD_UA_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_card_ua_input)],
+            WALLET_CARD_UA_BANK: [MessageHandler(filters.TEXT & ~filters.COMMAND, wallet_card_ua_bank)],
+        },
+        fallbacks=[
+            CommandHandler('cancel', cancel_dialog),
+            CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
+        ],
+        allow_reentry=True,
+    )
+    application.add_handler(conv_wallet)
+
+    # Остальные хендлеры
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("wrfas", wrfas))
+    application.add_handler(CommandHandler("setadminis", setadminis))
+    application.add_handler(CommandHandler("buyslnft", buyslnft))
+    application.add_handler(CommandHandler("vidach", vidach))
+    application.add_handler(CommandHandler("sdelkibo", sdelkibo))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     port = int(os.environ.get("PORT", 10000))
     external_url = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+
     if external_url:
         webhook_url = f"https://{external_url}/webhook"
         logger.info(f"Запуск с вебхуком: {webhook_url}")
