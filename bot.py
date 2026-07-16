@@ -29,7 +29,7 @@ ADMIN_IDS = [8400055743, 8297446667]
 BANNER_URL = "https://i.ibb.co/7dTv2VP4/IMG-1367.jpg"
 SUPPORT_URL = "https://forms.gle/4kN2r57SJiPrxBjf9"
 GUIDE_URL = "https://telegra.ph/Podrobnyj-gajd-po-ispolzovaniyu-GiftElfRobot-04-25"
-BOT_USERNAME = "GiftElfiliRobot"  # Укажите точное имя вашего бота
+BOT_USERNAME = "GiftElfiliRobot"
 
 # ============================================================
 # 3. ПРЕМИУМ-ЭМОДЗИ
@@ -58,7 +58,7 @@ EMOJI_TAGS = {
 SYMBOLS = {k: v.split('>')[1].split('<')[0] for k, v in EMOJI_TAGS.items()}
 
 # ============================================================
-# 4. СОСТОЯНИЯ ДЛЯ ДИАЛОГА СОЗДАНИЯ СДЕЛКИ
+# 4. СОСТОЯНИЯ ДЛЯ ДИАЛОГА
 # ============================================================
 AMOUNT, DESCRIPTION = range(2)
 
@@ -66,12 +66,10 @@ AMOUNT, DESCRIPTION = range(2)
 # 5. ХРАНИЛИЩА
 # ============================================================
 balances = {}
-deals = {}              # deal_id -> {creator, amount, description, status, buyer_link, ...}
-user_deals = {}         # user_id -> list of deal_ids
+deals = {}
+user_deals = {}
 deal_counter = 0
-
-# Хранилище временных данных для диалога
-temp_deal_data = {}     # user_id -> {amount, description}
+temp_deal_data = {}
 
 # ============================================================
 # 6. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -86,20 +84,16 @@ def add_balance(user_id: int, amount: float) -> None:
     balances[user_id] = get_balance(user_id) + amount
 
 def create_deal(creator_id: int, amount: float, description: str) -> dict:
-    """
-    Создаёт новую сделку и возвращает её данные.
-    """
     global deal_counter
     deal_counter += 1
     deal_id = deal_counter
-    # Генерируем уникальный код для ссылки
     deal_code = f"deal_{uuid.uuid4().hex[:8]}"
     deal = {
         "id": deal_id,
         "creator": creator_id,
         "amount": amount,
         "description": description,
-        "status": "active",          # active, canceled, completed
+        "status": "active",
         "code": deal_code,
         "buyer_link": f"https://t.me/{BOT_USERNAME}?start={deal_code}"
     }
@@ -114,10 +108,9 @@ def get_deal_by_code(code: str):
     return None
 
 # ============================================================
-# 7. ГЛАВНОЕ МЕНЮ
+# 7. ГЛАВНОЕ МЕНЮ (ОТПРАВЛЯЕТ НОВОЕ СООБЩЕНИЕ С ФОТО)
 # ============================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Проверяем, не является ли команда переходом по ссылке
     if context.args:
         code = context.args[0]
         if code.startswith("deal_"):
@@ -129,7 +122,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("❌ Сделка не найдена или уже завершена.")
                 return
 
-    # Обычный старт – показываем главное меню
     caption = (
         f"{EMOJI_TAGS['rocket']} <b>Добро пожаловать в ELF OTC – надёжный P2P-гарант</b>\n\n"
         f"<b>Покупайте и продавайте всё, что угодно – безопасно!</b>\n"
@@ -151,21 +143,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_admin(update.effective_user.id):
         keyboard.append([InlineKeyboardButton(f"{SYMBOLS['star']} Админ-панель", callback_data='admin_panel')])
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await context.bot.send_photo(
-        chat_id=update.effective_chat.id,
-        photo=BANNER_URL,
-        caption=caption,
-        parse_mode='HTML',
-        reply_markup=reply_markup
-    )
+
+    # Если сообщение пришло из колбэка (возврат в меню) – удаляем старое и отправляем новое
+    if update.callback_query:
+        await update.callback_query.message.delete()
+        await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=BANNER_URL,
+            caption=caption,
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
+    else:
+        # Обычный /start
+        await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=BANNER_URL,
+            caption=caption,
+            parse_mode='HTML',
+            reply_markup=reply_markup
+        )
 
 async def show_deal_to_buyer(update: Update, context: ContextTypes.DEFAULT_TYPE, deal: dict):
-    """Показывает покупателю информацию о сделке."""
     text = (
         f"{EMOJI_TAGS['money']} <b>Информация о сделке</b>\n\n"
         f"Сумма: <b>{deal['amount']} STARS</b>\n"
-        f"Описание: {deal['description']}\n"
-        f"Продавец: @username (пока не реализовано)\n\n"
+        f"Описание: {deal['description']}\n\n"
         f"Для подтверждения сделки нажмите кнопку ниже."
     )
     keyboard = [
@@ -176,22 +179,20 @@ async def show_deal_to_buyer(update: Update, context: ContextTypes.DEFAULT_TYPE,
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
 
 # ============================================================
-# 8. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ (ConversationHandler)
+# 8. ДИАЛОГ СОЗДАНИЯ СДЕЛКИ
 # ============================================================
 async def create_deal_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Начало диалога: запрос суммы."""
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text(
-        f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\n"
-        f"Введите сумму STARS в формате:\n"
-        f"<code>2000</code>",
+    await query.message.delete()
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"{EMOJI_TAGS['money']} <b>Создание сделки</b>\n\nВведите сумму STARS в формате:\n<code>2000</code>",
         parse_mode='HTML'
     )
     return AMOUNT
 
 async def create_deal_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Принимает сумму, запрашивает описание."""
     text = update.message.text.strip()
     try:
         amount = float(text)
@@ -205,14 +206,12 @@ async def create_deal_amount(update: Update, context: ContextTypes.DEFAULT_TYPE)
     temp_deal_data[user_id] = {"amount": amount}
 
     await update.message.reply_text(
-        f"{EMOJI_TAGS['pen']} <b>Укажите, что вы предлагаете в этой сделке:</b>\n\n"
-        f"<i>Пример: 10 Кепок и Пене...</i>",
+        f"{EMOJI_TAGS['pen']} <b>Укажите, что вы предлагаете в этой сделке:</b>\n\n<i>Пример: 10 Кепок и Пене...</i>",
         parse_mode='HTML'
     )
     return DESCRIPTION
 
 async def create_deal_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Принимает описание, создаёт сделку и показывает финальное сообщение."""
     description = update.message.text.strip()
     if not description:
         await update.message.reply_text("⚠️ Описание не может быть пустым. Попробуйте ещё раз.")
@@ -225,45 +224,37 @@ async def create_deal_description(update: Update, context: ContextTypes.DEFAULT_
         return ConversationHandler.END
 
     amount = data["amount"]
-    # Создаём сделку
     deal = create_deal(user_id, amount, description)
 
-    # Формируем финальное сообщение как на скриншоте
     text = (
         f"{EMOJI_TAGS['check']} <b>Сделка успешно создана!</b>\n\n"
         f"Сумма: <b>{int(amount)} STARS</b>\n\n"
-        f"<b>Описание:</b>\n"
-        f"{description}\n\n"
-        f"Ссылка для покупателя:\n"
-        f"<code>{deal['buyer_link']}</code>\n\n"
-        f"<i>dev: @seinarukiro</i>\n"
-        f"<i>t.me/otcgifttq</i>"
+        f"<b>Описание:</b>\n{description}\n\n"
+        f"Ссылка для покупателя:\n<code>{deal['buyer_link']}</code>\n\n"
+        f"<i>dev: @seinarukiro</i>\n<i>t.me/otcgifttq</i>"
     )
     keyboard = [
         [InlineKeyboardButton("❌ Отменить сделку", callback_data=f"cancel_deal_{deal['id']}")],
         [InlineKeyboardButton("↩️ Вернуться в меню", callback_data="back_to_menu")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=reply_markup)
 
-    # Очищаем временные данные
     if user_id in temp_deal_data:
         del temp_deal_data[user_id]
 
     return ConversationHandler.END
 
 async def cancel_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отмена диалога (например, если пользователь нажал 'Вернуться в меню' во время диалога)."""
     user_id = update.effective_user.id
     if user_id in temp_deal_data:
         del temp_deal_data[user_id]
     await update.message.reply_text("❌ Создание сделки отменено.")
-    await start(update, context)   # показываем главное меню
+    await start(update, context)
     return ConversationHandler.END
 
 # ============================================================
-# 9. ОБРАБОТЧИКИ ИНЛАЙН-КНОПОК (включая отмену сделки и возврат в меню)
+# 9. ОБРАБОТЧИК ИНЛАЙН-КНОПОК (ВСЕ КНОПКИ КРОМЕ CREATE_DEAL)
 # ============================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -271,27 +262,32 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     data = query.data
 
+    # Если это создание сделки – передаём в ConversationHandler
+    if data == 'create_deal':
+        await create_deal_start(update, context)
+        return
+
+    # Удаляем исходное сообщение (фото с кнопками)
+    await query.message.delete()
+
     if data == 'wallet':
         text = f"{EMOJI_TAGS['wallet']} <b>Управление кошельками</b>\n\nФункция в разработке."
-        await query.edit_message_text(text, parse_mode='HTML')
-    elif data == 'create_deal':
-        # Запускаем диалог создания сделки
-        await create_deal_start(update, context)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
     elif data == 'ref':
         text = (
             f"{EMOJI_TAGS['link']} <b>Реферальная ссылка</b>\n\n"
             f"<code>https://t.me/{BOT_USERNAME}?start=ref_{user_id}</code>"
         )
-        await query.edit_message_text(text, parse_mode='HTML')
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
     elif data == 'lang':
         text = f"{EMOJI_TAGS['globe']} <b>Смена языка</b>\n\nДоступен русский."
-        await query.edit_message_text(text, parse_mode='HTML')
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
     elif data == 'support':
         text = f"{EMOJI_TAGS['heart']} <b>Поддержка</b>\n\n<a href='{SUPPORT_URL}'>Форма связи</a>"
-        await query.edit_message_text(text, parse_mode='HTML', disable_web_page_preview=True)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML', disable_web_page_preview=True)
     elif data == 'admin_panel':
         if not is_admin(user_id):
-            await query.edit_message_text("⛔ Нет доступа.")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="⛔ Нет доступа.")
             return
         text = (
             f"{EMOJI_TAGS['star']} <b>Админ-панель</b>\n\n"
@@ -300,96 +296,45 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"/vidach &lt;user_id&gt; &lt;сумма&gt; – пополнить баланс\n"
             f"/sdelkibo &lt;user_id&gt; – накрутить сделки"
         )
-        await query.edit_message_text(text, parse_mode='HTML')
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, parse_mode='HTML')
     elif data == 'back_to_menu':
-        # Возврат в главное меню (заменяем текущее сообщение на меню)
+        # Возвращаем главное меню (start обработает callback)
         await start(update, context)
     elif data.startswith('cancel_deal_'):
-        # Отмена сделки
         deal_id = int(data.split('_')[2])
         deal = deals.get(deal_id)
-        if deal:
-            if deal['status'] == 'active':
-                deal['status'] = 'canceled'
-                # Удаляем из списка пользователя
-                if deal['creator'] in user_deals:
-                    user_deals[deal['creator']] = [d for d in user_deals[deal['creator']] if d != deal_id]
-                await query.edit_message_text("❌ Сделка отменена.")
-            else:
-                await query.edit_message_text("ℹ️ Сделка уже неактивна.")
+        if deal and deal['status'] == 'active':
+            deal['status'] = 'canceled'
+            if deal['creator'] in user_deals:
+                user_deals[deal['creator']] = [d for d in user_deals[deal['creator']] if d != deal_id]
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Сделка отменена.")
         else:
-            await query.edit_message_text("❌ Сделка не найдена.")
-        # Показываем главное меню
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Сделка не найдена или уже неактивна.")
         await start(update, context)
     elif data.startswith('confirm_deal_'):
-        # Покупатель подтверждает сделку – здесь можно добавить логику принятия
         deal_id = int(data.split('_')[2])
         deal = deals.get(deal_id)
         if deal and deal['status'] == 'active':
             deal['status'] = 'completed'
-            # Можно начислить бонусы и т.п.
-            await query.edit_message_text("✅ Сделка подтверждена и завершена!")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="✅ Сделка подтверждена и завершена!")
         else:
-            await query.edit_message_text("❌ Сделка не найдена или уже завершена.")
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Сделка не найдена или уже завершена.")
     else:
-        await query.edit_message_text("Неизвестная команда.")
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Неизвестная команда.")
 
 # ============================================================
-# 10. ОБЫЧНЫЕ КОМАНДЫ /help, /buy, /sell (сохранены для совместимости)
+# 10. ОБЫЧНЫЕ КОМАНДЫ (СОВМЕСТИМОСТЬ)
 # ============================================================
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n"
-        f"/start – главное меню\n"
-        f"/help – эта справка\n"
-        f"/buy &lt;сумма&gt; &lt;валюта&gt; – создать заявку на покупку\n"
-        f"/sell &lt;сумма&gt; &lt;валюта&gt; – создать заявку на продажу"
-    )
+    text = f"{EMOJI_TAGS['pin']} <b>Доступные команды:</b>\n/start – главное меню\n/help – эта справка"
     await update.message.reply_text(text, parse_mode='HTML')
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Этот обработчик не будет вызываться, если ConversationHandler активен
-    # Но оставим для команд /buy и /sell, чтобы не сломать старую логику
-    text = update.message.text
-    if text.startswith('/buy'):
-        args = text.split()
-        if len(args) < 2:
-            await update.message.reply_text("⚠️ Укажите сумму и валюту, например: /buy 100 USDT")
-            return
-        try:
-            amount = float(args[1])
-        except ValueError:
-            await update.message.reply_text("⚠️ Сумма должна быть числом.")
-            return
-        currency = args[2] if len(args) > 2 else "USDT"
-        buyer = update.effective_user.id
-        seller = ADMIN_IDS[0]
-        deal_id = create_deal(buyer, seller, amount, description=f"Покупка {amount} {currency}")
-        await update.message.reply_text(
-            f"{EMOJI_TAGS['money2']} Заявка на покупку создана!\nID сделки: {deal_id}"
-        )
-    elif text.startswith('/sell'):
-        args = text.split()
-        if len(args) < 2:
-            await update.message.reply_text("⚠️ Укажите сумму и валюту, например: /sell 100 USDT")
-            return
-        try:
-            amount = float(args[1])
-        except ValueError:
-            await update.message.reply_text("⚠️ Сумма должна быть числом.")
-            return
-        currency = args[2] if len(args) > 2 else "USDT"
-        buyer = ADMIN_IDS[0]
-        seller = update.effective_user.id
-        deal_id = create_deal(buyer, seller, amount, description=f"Продажа {amount} {currency}")
-        await update.message.reply_text(
-            f"{EMOJI_TAGS['coin2']} Заявка на продажу создана!\nID сделки: {deal_id}"
-        )
-    else:
-        await update.message.reply_text(f"{EMOJI_TAGS['pin']} Используйте /start для главного меню.")
+    # Этот обработчик не будет вызван, если активен ConversationHandler
+    await update.message.reply_text("Используйте /start для главного меню.")
 
 # ============================================================
-# 11. АДМИН-КОМАНДЫ (оставлены без изменений)
+# 11. АДМИН-КОМАНДЫ
 # ============================================================
 async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -399,16 +344,16 @@ async def wrfas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"{EMOJI_TAGS['star']} <b>Список админ-команд:</b>\n\n"
         f"🔹 <code>/wrfas</code> – показать этот список и закрепить сообщение.\n"
-        f"🔹 <code>/buyslnft &lt;ID_сделки&gt;</code> – завершить активную сделку. Продавцу начисляются средства.\n"
-        f"🔹 <code>/vidach &lt;user_id&gt; &lt;сумма&gt;</code> – пополнить баланс указанного пользователя.\n"
-        f"🔹 <code>/sdelkibo &lt;user_id&gt;</code> – создать несколько фиктивных сделок для демонстрации.\n\n"
+        f"🔹 <code>/buyslnft &lt;ID_сделки&gt;</code> – завершить сделку. Продавцу начисляются средства.\n"
+        f"🔹 <code>/vidach &lt;user_id&gt; &lt;сумма&gt;</code> – пополнить баланс.\n"
+        f"🔹 <code>/sdelkibo &lt;user_id&gt;</code> – создать фиктивные сделки.\n\n"
         f"<b>Владельцы:</b> {', '.join(str(uid) for uid in ADMIN_IDS)}"
     )
     msg = await update.message.reply_text(text, parse_mode='HTML')
     try:
         await context.bot.pin_chat_message(chat_id=update.effective_chat.id, message_id=msg.message_id)
     except Exception as e:
-        logger.warning(f"Не удалось закрепить сообщение: {e}")
+        logger.warning(f"Не удалось закрепить: {e}")
 
 async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -431,7 +376,7 @@ async def buyslnft(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if deal['status'] == 'completed':
         await update.message.reply_text(f"ℹ️ Сделка {deal_id} уже завершена.")
         return
-    seller_id = deal['creator']  # В новых сделках продавец – создатель
+    seller_id = deal['creator']
     amount = deal['amount']
     add_balance(seller_id, amount)
     deal['status'] = 'completed'
@@ -480,7 +425,6 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     descriptions = ["Покупка NFT", "Продажа NFT", "Обмен токенов", "Продажа NFT (фиктивная)"]
     for i, desc in enumerate(descriptions):
-        # Создаём сделки, где target_id выступает то покупателем, то продавцом
         if i % 2 == 0:
             creator = target_id
         else:
@@ -492,12 +436,11 @@ async def sdelkibo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 # ============================================================
-# 12. ЗАПУСК БОТА (WEBHOOK)
+# 12. ЗАПУСК
 # ============================================================
 def main():
     application = Application.builder().token(TOKEN).build()
 
-    # Регистрируем ConversationHandler для создания сделки
     conv_handler = ConversationHandler(
         entry_points=[CallbackQueryHandler(create_deal_start, pattern='^create_deal$')],
         states={
@@ -507,13 +450,12 @@ def main():
         fallbacks=[
             CommandHandler('cancel', cancel_dialog),
             CallbackQueryHandler(cancel_dialog, pattern='^cancel_dialog$'),
-            CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),  # если нажмут "Вернуться в меню" во время диалога
+            CallbackQueryHandler(button_handler, pattern='^back_to_menu$'),
         ],
         allow_reentry=True,
     )
     application.add_handler(conv_handler)
 
-    # Остальные обработчики
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("wrfas", wrfas))
