@@ -3,6 +3,7 @@ import os
 import json
 import uuid
 import time
+import threading
 from datetime import datetime
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -1037,7 +1038,7 @@ def main():
     load_data()
     port = int(os.environ.get("PORT", 10000))
 
-    # Создаём Flask-приложение для health-проверки и передаём его в run_webhook
+    # Запускаем Flask в отдельном потоке для health-проверок
     flask_app = Flask(__name__)
 
     @flask_app.route('/')
@@ -1045,7 +1046,17 @@ def main():
     def health():
         return "OK", 200
 
-    # Создаём приложение бота
+    def run_flask():
+        try:
+            flask_app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+        except Exception as e:
+            logger.error(f"Flask упал: {e}")
+
+    flask_thread = threading.Thread(target=run_flask, daemon=False)
+    flask_thread.start()
+    time.sleep(1)  # даём Flask подняться
+
+    # Запускаем бота (polling)
     app = Application.builder().token(TOKEN).build()
 
     conv_deal = ConversationHandler(
@@ -1109,21 +1120,9 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
-    external_url = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-    if external_url:
-        webhook_url = f"https://{external_url}/webhook"
-        logger.info(f"Запуск с вебхуком: {webhook_url}")
-        # Передаём flask_app как webhook_app
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path="webhook",
-            webhook_url=webhook_url,
-            webhook_app=flask_app  # Важно: Flask будет обрабатывать все остальные запросы
-        )
-    else:
-        logger.info("Запуск в режиме polling (локально)")
-        app.run_polling()
+    # Запускаем бота в режиме polling
+    logger.info("Бот запущен в режиме polling, Flask слушает порт для health-проверок")
+    app.run_polling()
 
 if __name__ == '__main__':
     main()
