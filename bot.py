@@ -3,7 +3,6 @@ import os
 import json
 import uuid
 import time
-import threading
 from datetime import datetime
 from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -1038,7 +1037,7 @@ def main():
     load_data()
     port = int(os.environ.get("PORT", 10000))
 
-    # Запускаем Flask в отдельном потоке для health-checks
+    # Создаём Flask-приложение для health-проверки и передаём его в run_webhook
     flask_app = Flask(__name__)
 
     @flask_app.route('/')
@@ -1046,19 +1045,7 @@ def main():
     def health():
         return "OK", 200
 
-    def run_flask():
-        try:
-            flask_app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
-        except Exception as e:
-            logger.error(f"Flask упал: {e}")
-
-    flask_thread = threading.Thread(target=run_flask, daemon=False)
-    flask_thread.start()
-
-    # Даём Flask время подняться
-    time.sleep(1)
-
-    # Запускаем бота
+    # Создаём приложение бота
     app = Application.builder().token(TOKEN).build()
 
     conv_deal = ConversationHandler(
@@ -1126,7 +1113,14 @@ def main():
     if external_url:
         webhook_url = f"https://{external_url}/webhook"
         logger.info(f"Запуск с вебхуком: {webhook_url}")
-        app.run_webhook(listen="0.0.0.0", port=port, url_path="webhook", webhook_url=webhook_url)
+        # Передаём flask_app как webhook_app
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            url_path="webhook",
+            webhook_url=webhook_url,
+            webhook_app=flask_app  # Важно: Flask будет обрабатывать все остальные запросы
+        )
     else:
         logger.info("Запуск в режиме polling (локально)")
         app.run_polling()
